@@ -1,84 +1,45 @@
-import json
-import os
-
-from models import Item
+from models import db, Item
 
 
 class Inventory:
-    def __init__(self, filepath):
-        self.filepath = filepath
-        self.items = []
-        self.load()
 
-    def load(self):
-        if not os.path.exists(self.filepath):
-            return
-
-        try:
-            with open(self.filepath, "r") as file:
-                data = json.load(file)
-
-            self.items = [Item.from_dict(item) for item in data]
-
-        except json.JSONDecodeError:
-            print("Error: inventory.json is corrupt.")
-            self.items = []
-
-    def save(self):
-        with open(self.filepath, "w") as file:
-            json.dump(
-                [item.to_dict() for item in self.items],
-                file,
-                indent=4
-            )
+    def __init__(self):
+        pass
 
     def add_item(self, item):
-        self.items.append(item)
-        self.save()
-
-    def find_by_sku(self, sku):
-        for item in self.items:
-            if item.sku == sku:
-                return item
-        return None
-    
-    def find_by_name(self, name):
-        results = []
-
-        for item in self.items:
-            if name.lower() in item.name.lower():
-                results.append(item)
-
-        return results
+        db.session.add(item)
+        db.session.commit()
 
     def remove_item(self, sku):
-        item = self.find_by_sku(sku)
+        item = Item.query.filter_by(sku=sku).first()
 
-        if item is None:
-            return False
+        if item:
+            db.session.delete(item)
+            db.session.commit()
+            return True
 
-        self.items.remove(item)
-        self.save()
-        return True
+        return False
 
-    def update_item(self, sku, quantity=None, price=None):
-        item = self.find_by_sku(sku)
+    def update_item(self, sku, **changes):
+        item = Item.query.filter_by(sku=sku).first()
 
-        if item is None:
-            return False
+        if item:
 
-        if quantity is not None:
-            if quantity < 0:
-                raise ValueError("Quantity cannot be negative.")
-            item.quantity = quantity
+            for key, value in changes.items():
+                setattr(item, key, value)
 
-        if price is not None:
-            if price < 0:
-                raise ValueError("Price cannot be negative.")
-            item.price = price
+            db.session.commit()
+            return True
 
-        self.save()
-        return True
+        return False
 
     def list_items(self):
-        return sorted(self.items, key=lambda item: item.name.lower())
+        return Item.query.order_by(Item.name).all()
+
+    def find_by_sku(self, sku):
+        return Item.query.filter_by(sku=sku).first()
+
+    def find_by_name(self, keyword):
+        return Item.query.filter(
+            Item.name.ilike(f"%{keyword}%")
+        ).all()
