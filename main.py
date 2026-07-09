@@ -1,3 +1,4 @@
+import sys
 from inventory import Inventory
 from models import Item
 
@@ -91,11 +92,12 @@ def main():
 
         elif choice == "6":
             print("Thank you for using Inventory Management System.")
-            break
+            sys.exit(0)
 
         else:
             print("Invalid choice. Please enter a number between 1 and 6.")
 
 
 if __name__ == "__main__":
+    main()
     main()

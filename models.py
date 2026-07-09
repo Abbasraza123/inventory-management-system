@@ -20,19 +20,18 @@ class Item:
         )
     
     def to_dict(self):
-    return {
-        "name": self.name,
-        "quantity": self.quantity,
-        "price": self.price,
-        "sku": self.sku
-    }
+        return {
+            "name": self.name,
+            "quantity": self.quantity,
+            "price": self.price,
+            "sku": self.sku
+        }
 
     @classmethod
-def from_dict(cls, data):
-    return cls(
-        data["name"],
-        data["quantity"],
-        data["price"],
-        data["sku"]
-    )
-    
+    def from_dict(cls, data):
+        return cls(
+            data["name"],
+            data["quantity"],
+            data["price"],
+            data["sku"]
+        )
