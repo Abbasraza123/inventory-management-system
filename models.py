@@ -4,8 +4,6 @@ db = SQLAlchemy()
 
 
 class Item(db.Model):
-    __tablename__ = "item"
-
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(120), nullable=False)
     quantity = db.Column(db.Integer, nullable=False, default=0)
@@ -18,5 +16,5 @@ class Item(db.Model):
             "name": self.name,
             "quantity": self.quantity,
             "price": self.price,
-            "sku": self.sku,
+            "sku": self.sku
         }
