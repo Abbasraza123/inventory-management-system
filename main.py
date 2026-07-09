@@ -10,17 +10,18 @@ def main():
         print("1. Add Item")
         print("2. Remove Item")
         print("3. Update Item")
-        print("4. List Items")
-        print("5. Exit")
+        print("4. Search by Name")
+        print("5. List Items")
+        print("6. Exit")
 
-        choice = input("Enter your choice: ")
+        choice = input("Enter your choice: ").strip()
 
         if choice == "1":
             try:
                 name = input("Enter Item Name: ").strip()
 
                 if not name:
-                    print("Name cannot be empty.")
+                    print("Error: Name cannot be empty.")
                     continue
 
                 quantity = int(input("Enter Quantity: "))
@@ -28,7 +29,7 @@ def main():
                 sku = input("Enter SKU: ").strip()
 
                 if inventory.find_by_sku(sku):
-                    print("SKU already exists.")
+                    print("Error: SKU already exists.")
                     continue
 
                 item = Item(name, quantity, price, sku)
@@ -49,7 +50,7 @@ def main():
 
         elif choice == "3":
             try:
-                sku = input("Enter SKU: ").strip()
+                sku = input("Enter SKU to update: ").strip()
 
                 quantity = int(input("Enter New Quantity: "))
                 price = float(input("Enter New Price: "))
@@ -63,23 +64,37 @@ def main():
                 print(f"Error: {e}")
 
         elif choice == "4":
+            name = input("Enter Item Name to search: ").strip()
+
+            results = inventory.find_by_name(name)
+
+            if results:
+                print("\nMatching Items")
+                print("-" * 50)
+
+                for item in results:
+                    print(item)
+            else:
+                print("No matching items found.")
+
+        elif choice == "5":
             items = inventory.list_items()
 
             if not items:
                 print("Inventory is empty.")
             else:
                 print("\nCurrent Inventory")
-                print("-" * 60)
+                print("-" * 50)
 
                 for item in items:
                     print(item)
 
-        elif choice == "5":
-            print("Goodbye!")
+        elif choice == "6":
+            print("Thank you for using Inventory Management System.")
             break
 
         else:
-            print("Invalid choice. Please try again.")
+            print("Invalid choice. Please enter a number between 1 and 6.")
 
 
 if __name__ == "__main__":

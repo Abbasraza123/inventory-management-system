@@ -41,6 +41,15 @@ class Inventory:
             if item.sku == sku:
                 return item
         return None
+    
+    def find_by_name(self, name):
+    results = []
+
+    for item in self.items:
+        if name.lower() in item.name.lower():
+            results.append(item)
+
+    return results
 
     def remove_item(self, sku):
         item = self.find_by_sku(sku)
