@@ -1,37 +1,22 @@
-class Item:
-    def __init__(self, name, quantity, price, sku):
-        if quantity < 0:
-            raise ValueError("Quantity cannot be negative.")
+from flask_sqlalchemy import SQLAlchemy
 
-        if price < 0:
-            raise ValueError("Price cannot be negative.")
+db = SQLAlchemy()
 
-        self.name = name
-        self.quantity = quantity
-        self.price = price
-        self.sku = sku
 
-    def __repr__(self):
-        return (
-            f"Item(name='{self.name}', "
-            f"quantity={self.quantity}, "
-            f"price={self.price}, "
-            f"sku='{self.sku}')"
-        )
-    
+class Item(db.Model):
+    __tablename__ = "item"
+
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(120), nullable=False)
+    quantity = db.Column(db.Integer, nullable=False, default=0)
+    price = db.Column(db.Float, nullable=False, default=0.0)
+    sku = db.Column(db.String(50), unique=True, nullable=False)
+
     def to_dict(self):
         return {
+            "id": self.id,
             "name": self.name,
             "quantity": self.quantity,
             "price": self.price,
-            "sku": self.sku
+            "sku": self.sku,
         }
-
-    @classmethod
-    def from_dict(cls, data):
-        return cls(
-            data["name"],
-            data["quantity"],
-            data["price"],
-            data["sku"]
-        )
