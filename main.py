@@ -1,10 +1,11 @@
 import sys
+from app import app
 from inventory import Inventory
 from models import Item
 
 
 def main():
-    inventory = Inventory("inventory.json")
+    inventory = Inventory()
 
     while True:
         print("\n===== Inventory Management System =====")
@@ -33,7 +34,13 @@ def main():
                     print("Error: SKU already exists.")
                     continue
 
-                item = Item(name, quantity, price, sku)
+                item = Item(
+                    name=name,
+                    quantity=quantity,
+                    price=price,
+                    sku=sku
+                )
+
                 inventory.add_item(item)
 
                 print("Item added successfully.")
@@ -56,7 +63,11 @@ def main():
                 quantity = int(input("Enter New Quantity: "))
                 price = float(input("Enter New Price: "))
 
-                if inventory.update_item(sku, quantity, price):
+                if inventory.update_item(
+                    sku,
+                    quantity=quantity,
+                    price=price
+                ):
                     print("Item updated successfully.")
                 else:
                     print("Item not found.")
@@ -74,7 +85,7 @@ def main():
                 print("-" * 50)
 
                 for item in results:
-                    print(item)
+                    print(item.to_dict())
             else:
                 print("No matching items found.")
 
@@ -88,7 +99,7 @@ def main():
                 print("-" * 50)
 
                 for item in items:
-                    print(item)
+                    print(item.to_dict())
 
         elif choice == "6":
             print("Thank you for using Inventory Management System.")
@@ -99,5 +110,5 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
-    main()
+    with app.app_context():
+        main()
