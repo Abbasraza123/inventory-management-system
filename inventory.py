@@ -14,14 +14,15 @@ class Inventory:
         if not os.path.exists(self.filepath):
             return
 
-        with open(self.filepath, "r") as file:
-            data = json.load(file)
+        try:
+            with open(self.filepath, "r") as file:
+                data = json.load(file)
 
-        self.items = []
+            self.items = [Item.from_dict(item) for item in data]
 
-        for item in data:
-        obj = Item.from_dict(item)
-        self.items.append(obj)
+        except json.JSONDecodeError:
+            print("Error: inventory.json is corrupt.")
+            self.items = []
 
     def save(self):
         with open(self.filepath, "w") as file:
@@ -71,4 +72,4 @@ class Inventory:
         return True
 
     def list_items(self):
-        return self.items
+        return sorted(self.items, key=lambda item: item.name.lower())
