@@ -1,175 +1,52 @@
-function Suppliers(){
+import { useEffect, useState } from "react";
+import PageHeader from "../components/common/PageHeader";
+import { getSuppliers } from "../services/api";
 
-    const suppliers = [
+function Suppliers() {
+  const [suppliers, setSuppliers] = useState([]);
 
-        {
-            id:1,
-            name:"Tech Solutions Ltd",
-            contact:"0300-1234567",
-            email:"tech@gmail.com",
-            products:20
-        },
+  useEffect(() => {
+    const loadSuppliers = async () => {
+      try {
+        const data = await getSuppliers();
+        setSuppliers(data);
+      } catch (error) {
+        console.error("Failed to load suppliers", error);
+      }
+    };
 
-        {
-            id:2,
-            name:"ABC Electronics",
-            contact:"0312-9876543",
-            email:"abc@gmail.com",
-            products:35
-        },
+    loadSuppliers();
+  }, []);
 
-        {
-            id:3,
-            name:"Global Traders",
-            contact:"0333-5556677",
-            email:"global@gmail.com",
-            products:15
+  return (
+    <div className="space-y-6">
+      <PageHeader
+        title="Suppliers"
+        subtitle="Build dependable vendor relationships and track supply strength."
+        action={
+          <button className="rounded-2xl bg-gradient-to-r from-cyan-500 to-blue-600 px-5 py-3 font-semibold text-white shadow-sm transition hover:opacity-90">
+            + Add Supplier
+          </button>
         }
+      />
 
-    ];
-
-
-    return(
-
-        <div>
-
-
-            <div className="flex justify-between items-center">
-
-
-                <div>
-
-                    <h1 className="text-4xl font-bold text-slate-800">
-                        Suppliers
-                    </h1>
-
-
-                    <p className="text-gray-500 mt-2">
-                        Manage your product suppliers.
-                    </p>
-
-                </div>
-
-
-
-                <button className="bg-blue-600 text-white px-5 py-3 rounded-lg hover:bg-blue-700">
-
-                    + Add Supplier
-
-                </button>
-
-
+      <div className="grid gap-4 lg:grid-cols-3">
+        {suppliers.map((supplier) => (
+          <div key={supplier.id} className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-slate-800">{supplier.name}</h3>
+              <span className="rounded-full bg-cyan-100 px-3 py-1 text-xs font-semibold text-cyan-700">Active</span>
             </div>
-
-
-
-
-            <div className="mt-8 bg-white rounded-xl shadow-md p-6">
-
-
-                <table className="w-full text-left">
-
-
-                    <thead>
-
-
-                        <tr className="border-b">
-
-
-                            <th className="py-3">
-                                ID
-                            </th>
-
-
-                            <th>
-                                Supplier Name
-                            </th>
-
-
-                            <th>
-                                Contact
-                            </th>
-
-
-                            <th>
-                                Email
-                            </th>
-
-
-                            <th>
-                                Products Supplied
-                            </th>
-
-
-                        </tr>
-
-
-                    </thead>
-
-
-
-
-                    <tbody>
-
-
-                    {
-                        suppliers.map((supplier)=>(
-
-                            <tr 
-                                key={supplier.id}
-                                className="border-b"
-                            >
-
-
-                                <td className="py-3">
-                                    {supplier.id}
-                                </td>
-
-
-                                <td>
-                                    {supplier.name}
-                                </td>
-
-
-                                <td>
-                                    {supplier.contact}
-                                </td>
-
-
-                                <td>
-                                    {supplier.email}
-                                </td>
-
-
-                                <td>
-                                    {supplier.products}
-                                </td>
-
-
-                            </tr>
-
-
-                        ))
-                    }
-
-
-                    </tbody>
-
-
-
-                </table>
-
-
+            <div className="mt-4 space-y-2 text-sm text-slate-600">
+              <p>Contact: {supplier.contact}</p>
+              <p>Email: {supplier.email}</p>
+              <p>Products supplied: {supplier.product_count}</p>
             </div>
-
-
-
-        </div>
-
-
-    );
-
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 }
-
 
 export default Suppliers;

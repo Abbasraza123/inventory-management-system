@@ -1,259 +1,168 @@
-import { useState } from "react";
+﻿import { useEffect, useState } from "react";
+import PageHeader from "../components/common/PageHeader";
 import AddProduct from "../components/products/AddProduct";
+import ProductTable from "../components/products/ProductTable";
+import SearchBar from "../components/products/SearchBar";
+import { createProduct, deleteProduct, getProducts, updateProduct } from "../services/api";
 
+function Products() {
+  const [showForm, setShowForm] = useState(false);
+  const [editingProduct, setEditingProduct] = useState(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
-function Products(){
+  useEffect(() => {
+    const loadProducts = async () => {
+      try {
+        setLoading(true);
+        const data = await getProducts();
+        setProducts(data);
+      } catch {
+        setError("Unable to load products right now.");
+      } finally {
+        setLoading(false);
+      }
+    };
 
+    loadProducts();
+  }, []);
 
-    const [showForm,setShowForm] = useState(false);
+  const filteredProducts = products.filter((product) => {
+    const term = searchTerm.toLowerCase();
+    return (
+      product.name.toLowerCase().includes(term) ||
+      (product.category || "").toLowerCase().includes(term)
+    );
+  });
 
+  const lowStockCount = products.filter((product) => product.stock <= 5).length;
+  const totalStock = products.reduce((sum, product) => sum + product.stock, 0);
 
+  const handleAddProduct = async (product) => {
+    try {
+      setLoading(true);
+      const createdProduct = await createProduct(product);
+      setProducts((previous) => [createdProduct, ...previous]);
+      setShowForm(false);
+      setError("");
+    } catch {
+      setError("Could not save the product.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    const products = [
+  const handleUpdateProduct = async (product) => {
+    try {
+      setLoading(true);
+      const updatedProduct = await updateProduct(editingProduct.id, product);
+      setProducts((previous) => previous.map((item) => (item.id === updatedProduct.id ? updatedProduct : item)));
+      setEditingProduct(null);
+      setShowForm(false);
+      setError("");
+    } catch {
+      setError("Could not update the product.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
-        {
-            id:1,
-            name:"Laptop",
-            category:"Electronics",
-            price:"$1200",
-            stock:25
-        },
+  const handleDeleteProduct = async (productId) => {
+    if (!window.confirm("Delete this product?")) {
+      return;
+    }
 
-        {
-            id:2,
-            name:"Keyboard",
-            category:"Accessories",
-            price:"$50",
-            stock:5
-        },
+    try {
+      setLoading(true);
+      await deleteProduct(productId);
+      setProducts((previous) => previous.filter((item) => item.id !== productId));
+      setError("");
+    } catch {
+      setError("Could not delete the product.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
-        {
-            id:3,
-            name:"Monitor",
-            category:"Electronics",
-            price:"$300",
-            stock:15
-        },
+  const startEditing = (product) => {
+    setEditingProduct(product);
+    setShowForm(true);
+  };
 
-        {
-            id:4,
-            name:"Mouse",
-            category:"Accessories",
-            price:"$25",
-            stock:2
+  const cancelEditing = () => {
+    setEditingProduct(null);
+    setShowForm(false);
+  };
+
+  return (
+    <div className="space-y-6">
+      <PageHeader
+        title="Products"
+        subtitle="Track stock levels, update catalog items, and stay ahead of reorders."
+        action={
+          <button
+            onClick={() => {
+              setShowForm((previous) => !previous);
+              if (showForm) {
+                setEditingProduct(null);
+              }
+            }}
+            className="rounded-2xl bg-gradient-to-r from-cyan-500 to-blue-600 px-5 py-3 font-semibold text-white shadow-sm transition hover:opacity-90"
+          >
+            {showForm ? "Hide form" : "+ Add Product"}
+          </button>
         }
-
-    ];
-
-
-
-    return(
-
-
-        <div>
-
-
-
-            <div className="flex justify-between items-center">
-
-
-                <div>
-
-                    <h1 className="text-4xl font-bold text-slate-800">
-                        Products
-                    </h1>
-
-
-                    <p className="text-gray-500 mt-2">
-                        Manage your inventory products.
-                    </p>
-
-                </div>
-
-
-
-                <button
-
-                    onClick={()=>setShowForm(!showForm)}
-
-                    className="bg-blue-600 text-white px-5 py-3 rounded-lg hover:bg-blue-700"
-
-                >
-
-                    + Add Product
-
-                </button>
-
-
-
-            </div>
-
-
-
-            {
-                showForm && <AddProduct/>
-            }
-
-
-
-
-            <div className="mt-8 bg-white rounded-xl shadow-md p-6">
-
-
-
-                <input
-
-                    type="text"
-
-                    placeholder="Search products..."
-
-                    className="border rounded-lg p-3 w-full mb-5"
-
-                />
-
-
-
-                <table className="w-full text-left">
-
-
-                    <thead>
-
-
-                        <tr className="border-b">
-
-
-                            <th className="py-3">
-                                ID
-                            </th>
-
-
-                            <th>
-                                Product
-                            </th>
-
-
-                            <th>
-                                Category
-                            </th>
-
-
-                            <th>
-                                Price
-                            </th>
-
-
-                            <th>
-                                Stock
-                            </th>
-
-
-                            <th>
-                                Status
-                            </th>
-
-
-                        </tr>
-
-
-                    </thead>
-
-
-
-                    <tbody>
-
-
-                    {
-
-                        products.map((product)=>(
-
-
-                            <tr 
-                                key={product.id}
-                                className="border-b"
-                            >
-
-
-                                <td className="py-3">
-                                    {product.id}
-                                </td>
-
-
-                                <td>
-                                    {product.name}
-                                </td>
-
-
-                                <td>
-                                    {product.category}
-                                </td>
-
-
-                                <td>
-                                    {product.price}
-                                </td>
-
-
-                                <td>
-                                    {product.stock}
-                                </td>
-
-
-                                <td>
-
-
-                                {
-
-                                    product.stock <= 5
-
-                                    ?
-
-                                    <span className="text-red-600 font-semibold">
-                                        Low Stock
-                                    </span>
-
-                                    :
-
-                                    <span className="text-green-600 font-semibold">
-                                        Available
-                                    </span>
-
-                                }
-
-
-                                </td>
-
-
-
-                            </tr>
-
-
-                        ))
-
-                    }
-
-
-
-                    </tbody>
-
-
-
-                </table>
-
-
-
-
-            </div>
-
-
-
-
+      />
+
+      <div className="grid gap-4 md:grid-cols-3">
+        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+          <p className="text-sm text-slate-500">Total products</p>
+          <p className="mt-2 text-2xl font-semibold text-slate-800">{products.length}</p>
+        </div>
+        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+          <p className="text-sm text-slate-500">Stock in hand</p>
+          <p className="mt-2 text-2xl font-semibold text-emerald-600">{totalStock}</p>
+        </div>
+        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+          <p className="text-sm text-slate-500">Low stock alerts</p>
+          <p className="mt-2 text-2xl font-semibold text-rose-600">{lowStockCount}</p>
+        </div>
+      </div>
+
+      {showForm ? (
+        <AddProduct
+          onAdd={editingProduct ? handleUpdateProduct : handleAddProduct}
+          loading={loading}
+          initialValues={editingProduct}
+          onCancel={cancelEditing}
+          submitLabel={editingProduct ? "Update Product" : "Save Product"}
+          title={editingProduct ? "Update product" : "Add a new product"}
+          subtitle={editingProduct ? "Adjust inventory details and keep the catalog current." : "Keep your inventory fresh and easy to track."}
+        />
+      ) : null}
+      {error ? <p className="text-sm text-rose-600">{error}</p> : null}
+
+      <div className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
+        <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <div>
+            <h2 className="text-xl font-semibold text-slate-800">Inventory list</h2>
+            <p className="text-sm text-slate-500">Quickly scan and manage your catalog.</p>
+          </div>
+          <div className="w-full md:max-w-sm">
+            <SearchBar value={searchTerm} onChange={setSearchTerm} />
+          </div>
         </div>
 
-
-    );
-
-
+        {loading && products.length === 0 ? (
+          <p className="text-sm text-slate-500">Loading products...</p>
+        ) : (
+          <ProductTable products={filteredProducts} onEdit={startEditing} onDelete={handleDeleteProduct} />
+        )}
+      </div>
+    </div>
+  );
 }
-
 
 export default Products;

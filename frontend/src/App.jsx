@@ -1,59 +1,49 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { useState } from "react";
+import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 
 import Layout from "./components/layout/Layout";
-
 import Dashboard from "./pages/Dashboard";
+import Login from "./pages/Login";
 import Products from "./pages/Products";
 import Categories from "./pages/Categories";
 import Suppliers from "./pages/Suppliers";
 import Reports from "./pages/Reports";
 
+function App() {
+  const [isAuthenticated, setIsAuthenticated] = useState(() => Boolean(localStorage.getItem("inventory_token")));
 
-function App(){
+  const handleLogin = (token) => {
+    localStorage.setItem("inventory_token", token);
+    setIsAuthenticated(true);
+  };
 
+  const handleLogout = () => {
+    localStorage.removeItem("inventory_token");
+    setIsAuthenticated(false);
+  };
 
-  return(
-
+  return (
     <BrowserRouter>
-
-
-      <Layout>
-
-
+      {isAuthenticated ? (
+        <Layout onLogout={handleLogout}>
+          <Routes>
+            <Route path="/" element={<Navigate to="/dashboard" replace />} />
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/products" element={<Products />} />
+            <Route path="/categories" element={<Categories />} />
+            <Route path="/suppliers" element={<Suppliers />} />
+            <Route path="/reports" element={<Reports />} />
+            <Route path="*" element={<Navigate to="/dashboard" replace />} />
+          </Routes>
+        </Layout>
+      ) : (
         <Routes>
-
-
-          <Route path="/" element={<Dashboard />} />
-
-
-          <Route path="/dashboard" element={<Dashboard />} />
-
-
-          <Route path="/products" element={<Products />} />
-
-
-          <Route path="/categories" element={<Categories />} />
-
-
-          <Route path="/suppliers" element={<Suppliers />} />
-
-
-          <Route path="/reports" element={<Reports />} />
-
-
+          <Route path="/login" element={<Login onLogin={handleLogin} />} />
+          <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
-
-
-      </Layout>
-
-
+      )}
     </BrowserRouter>
-
-
   );
-
-
 }
-
 
 export default App;
