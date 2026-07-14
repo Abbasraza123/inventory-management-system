@@ -5,6 +5,11 @@ import pytest
 
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 
+# Select the test database before importing the Flask app. Flask-SQLAlchemy
+# creates its engine during import, so changing this afterward can wipe the
+# development database when tests call drop_all().
+os.environ["DATABASE_URL"] = "sqlite:///:memory:"
+
 from app import app, db, seed_demo_data
 
 

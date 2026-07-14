@@ -1,7 +1,11 @@
 import json
+import os
 import time
 
 import pytest
+
+# This must be set before app is imported; see tests/test_api.py.
+os.environ["DATABASE_URL"] = "sqlite:///:memory:"
 
 from app import app
 from models import User, db
