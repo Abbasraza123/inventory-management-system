@@ -1,19 +1,44 @@
-import secrets
-
-from flask import Flask, jsonify, request
+from flask import Flask, abort, jsonify, request
 from flask_cors import CORS
-from werkzeug.security import check_password_hash, generate_password_hash
 
+from auth import auth_required, create_auth_blueprint
+from config import Config
 from models import Category, Product, Supplier, User, db
 
+# ── Validate critical config before creating the app ──────────────────
+Config.validate()
+
 app = Flask(__name__)
-app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///inventory.db"
-app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
-app.config["SECRET_KEY"] = "inventory-secret-key"
+app.config.from_object(Config)
 
 CORS(app)
 db.init_app(app)
+app.register_blueprint(create_auth_blueprint(), url_prefix="/api/auth")
 
+
+# ── Global JSON error handlers ───────────────────────────────────────
+
+@app.errorhandler(400)
+def bad_request(e):
+    return jsonify({"success": False, "error": str(e.description) if hasattr(e, "description") else "Bad request"}), 400
+
+
+@app.errorhandler(404)
+def not_found(e):
+    return jsonify({"success": False, "error": "Resource not found"}), 404
+
+
+@app.errorhandler(405)
+def method_not_allowed(e):
+    return jsonify({"success": False, "error": "Method not allowed"}), 405
+
+
+@app.errorhandler(500)
+def internal_error(e):
+    return jsonify({"success": False, "error": "An unexpected error occurred"}), 500
+
+
+# ── DB initialisation ────────────────────────────────────────────────
 
 @app.before_request
 def _ensure_db_tables():
@@ -25,15 +50,6 @@ def _ensure_db_tables():
 
 
 def seed_demo_data():
-    if User.query.first() is None:
-        admin = User(
-            username="admin",
-            password_hash=generate_password_hash("admin123"),
-            token=secrets.token_urlsafe(24),
-        )
-        db.session.add(admin)
-        db.session.commit()
-
     if Category.query.first() is None:
         categories = [
             Category(name="Electronics"),
@@ -67,12 +83,17 @@ def seed_demo_data():
         db.session.commit()
 
 
+# ── Public routes ─────────────────────────────────────────────────────
+
 @app.route("/api/health")
 def health():
     return jsonify({"status": "ok"})
 
 
+# ── Protected routes ──────────────────────────────────────────────────
+
 @app.route("/api/dashboard")
+@auth_required
 def dashboard_summary():
     products = Product.query.all()
     categories = Category.query.all()
@@ -93,50 +114,20 @@ def dashboard_summary():
     )
 
 
-@app.route("/api/auth/login", methods=["POST"])
-def login():
-    payload = request.get_json(silent=True) or {}
-    username = (payload.get("username") or "").strip()
-    password = payload.get("password") or ""
-
-    if not username or not password:
-        return jsonify({"error": "Username and password are required"}), 400
-
-    user = User.query.filter_by(username=username).first()
-    if not user or not check_password_hash(user.password_hash, password):
-        return jsonify({"error": "Invalid credentials"}), 401
-
-    user.token = secrets.token_urlsafe(24)
-    db.session.commit()
-
-    return jsonify({"token": user.token, "user": user.to_dict()})
-
-
-@app.route("/api/auth/me")
-def auth_me():
-    token = request.headers.get("Authorization", "").replace("Bearer ", "", 1).strip()
-    if not token:
-        return jsonify({"error": "Authentication required"}), 401
-
-    user = User.query.filter_by(token=token).first()
-    if not user:
-        return jsonify({"error": "Invalid token"}), 401
-
-    return jsonify(user.to_dict())
-
-
 @app.route("/api/products", methods=["GET"]) 
+@auth_required
 def list_products():
     products = Product.query.order_by(Product.id.desc()).all()
     return jsonify([product.to_dict() for product in products])
 
 
 @app.route("/api/products", methods=["POST"]) 
+@auth_required
 def create_product():
     payload = request.get_json(silent=True) or {}
     name = (payload.get("name") or "").strip()
     if not name:
-        return jsonify({"error": "Name is required"}), 400
+        return jsonify({"success": False, "error": "Name is required"}), 400
 
     price = float(payload.get("price") or 0)
     quantity = int(payload.get("stock") or payload.get("quantity") or 0)
@@ -144,27 +135,19 @@ def create_product():
     category = None
     if payload.get("category"):
         category_name = str(payload.get("category")).strip()
-        category = Category.query.filter_by(name=category_name).first()
-        if not category:
-            category = Category(name=category_name)
-            db.session.add(category)
-            db.session.commit()
+        category = Category.query.filter_by(name=category_name).first() or Category(name=category_name)
 
     supplier = None
     if payload.get("supplier"):
         supplier_name = str(payload.get("supplier")).strip()
-        supplier = Supplier.query.filter_by(name=supplier_name).first()
-        if not supplier:
-            supplier = Supplier(name=supplier_name)
-            db.session.add(supplier)
-            db.session.commit()
+        supplier = Supplier.query.filter_by(name=supplier_name).first() or Supplier(name=supplier_name)
 
     product = Product(
         name=name,
         price=price,
         quantity=quantity,
-        category_id=category.id if category else None,
-        supplier_id=supplier.id if supplier else None,
+        category=category,
+        supplier=supplier,
     )
     db.session.add(product)
     db.session.commit()
@@ -173,8 +156,9 @@ def create_product():
 
 
 @app.route("/api/products/<int:product_id>", methods=["PUT"]) 
+@auth_required
 def update_product(product_id):
-    product = Product.query.get_or_404(product_id)
+    product = db.session.get(Product, product_id) or abort(404)
     payload = request.get_json(silent=True) or {}
 
     if "name" in payload:
@@ -186,47 +170,40 @@ def update_product(product_id):
 
     if "category" in payload:
         category_name = str(payload["category"]).strip()
-        if category_name:
-            category = Category.query.filter_by(name=category_name).first()
-            if not category:
-                category = Category(name=category_name)
-                db.session.add(category)
-                db.session.commit()
-            product.category_id = category.id
-        else:
-            product.category_id = None
+        product.category = (
+            Category.query.filter_by(name=category_name).first() or Category(name=category_name)
+            if category_name else None
+        )
 
     if "supplier" in payload:
         supplier_name = str(payload["supplier"]).strip()
-        if supplier_name:
-            supplier = Supplier.query.filter_by(name=supplier_name).first()
-            if not supplier:
-                supplier = Supplier(name=supplier_name)
-                db.session.add(supplier)
-                db.session.commit()
-            product.supplier_id = supplier.id
-        else:
-            product.supplier_id = None
+        product.supplier = (
+            Supplier.query.filter_by(name=supplier_name).first() or Supplier(name=supplier_name)
+            if supplier_name else None
+        )
 
     db.session.commit()
     return jsonify(product.to_dict())
 
 
 @app.route("/api/products/<int:product_id>", methods=["DELETE"]) 
+@auth_required
 def delete_product(product_id):
-    product = Product.query.get_or_404(product_id)
+    product = db.session.get(Product, product_id) or abort(404)
     db.session.delete(product)
     db.session.commit()
     return jsonify({"deleted": True})
 
 
 @app.route("/api/categories", methods=["GET"]) 
+@auth_required
 def list_categories():
     categories = Category.query.order_by(Category.name).all()
     return jsonify([category.to_dict() for category in categories])
 
 
 @app.route("/api/suppliers", methods=["GET"]) 
+@auth_required
 def list_suppliers():
     suppliers = Supplier.query.order_by(Supplier.name).all()
     return jsonify([supplier.to_dict() for supplier in suppliers])

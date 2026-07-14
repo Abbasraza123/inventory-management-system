@@ -1,8 +1,10 @@
 import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { login } from "../services/api";
 
 function Login({ onLogin }) {
-  const [form, setForm] = useState({ username: "", password: "" });
+  const navigate = useNavigate();
+  const [form, setForm] = useState({ email: "", password: "" });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -19,8 +21,9 @@ function Login({ onLogin }) {
     try {
       const data = await login(form);
       onLogin(data.token);
-    } catch {
-      setError("Invalid credentials. Try admin / admin123.");
+      navigate("/dashboard");
+    } catch (error) {
+      setError(error.response?.data?.error || "Invalid credentials.");
     } finally {
       setLoading(false);
     }
@@ -37,11 +40,11 @@ function Login({ onLogin }) {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <input
-            name="username"
-            value={form.username}
+            name="email"
+            value={form.email}
             onChange={handleChange}
-            type="text"
-            placeholder="Username"
+            type="email"
+            placeholder="Email"
             className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none focus:border-cyan-400"
           />
           <input
@@ -64,6 +67,9 @@ function Login({ onLogin }) {
           </button>
         </form>
 
+        <p className="mt-4 text-center text-sm text-slate-500">
+          Need an account? <Link to="/register" className="font-semibold text-cyan-600">Create one</Link>
+        </p>
       </div>
     </div>
   );

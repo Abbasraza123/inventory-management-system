@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || "http://localhost:5000/api",
+  baseURL: import.meta.env.VITE_API_URL || "/api",
 });
 
 api.interceptors.request.use((config) => {
@@ -16,6 +16,9 @@ export const getHealth = () => api.get("/health").then((response) => response.da
 
 export const login = (credentials) =>
   api.post("/auth/login", credentials).then((response) => response.data);
+
+export const register = (payload) =>
+  api.post("/auth/register", payload).then((response) => response.data);
 
 export const getProfile = () => api.get("/auth/me").then((response) => response.data);
 
