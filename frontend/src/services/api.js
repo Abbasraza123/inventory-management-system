@@ -12,6 +12,19 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    // A stored token can become stale if it expires or its user is removed.
+    // Tell the app to end the session instead of leaving protected pages empty.
+    if (error.response?.status === 401 && localStorage.getItem("inventory_token")) {
+      localStorage.removeItem("inventory_token");
+      window.dispatchEvent(new Event("inventory:unauthorized"));
+    }
+    return Promise.reject(error);
+  },
+);
+
 export const getHealth = () => api.get("/health").then((response) => response.data);
 
 export const login = (credentials) =>

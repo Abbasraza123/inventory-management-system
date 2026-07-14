@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 
 import Layout from "./components/layout/Layout";
@@ -22,6 +22,11 @@ function App() {
     localStorage.removeItem("inventory_token");
     setIsAuthenticated(false);
   };
+
+  useEffect(() => {
+    window.addEventListener("inventory:unauthorized", handleLogout);
+    return () => window.removeEventListener("inventory:unauthorized", handleLogout);
+  }, []);
 
   return (
     <BrowserRouter>

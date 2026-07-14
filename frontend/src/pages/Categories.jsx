@@ -19,7 +19,9 @@ function Categories() {
   };
 
   useEffect(() => {
-    loadCategories();
+    getCategories()
+      .then(setCategories)
+      .catch((err) => setError(err?.response?.data?.error || "Failed to load categories"));
   }, []);
 
   const handleAdd = async (e) => {

@@ -19,7 +19,9 @@ function Suppliers() {
   };
 
   useEffect(() => {
-    loadSuppliers();
+    getSuppliers()
+      .then(setSuppliers)
+      .catch((err) => setError(err?.response?.data?.error || "Failed to load suppliers"));
   }, []);
 
   const handleChange = (e) => {

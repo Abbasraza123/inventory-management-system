@@ -17,7 +17,7 @@ function Products() {
   const [success, setSuccess] = useState("");
 
   const [page, setPage] = useState(1);
-  const [limit, setLimit] = useState(10);
+  const limit = 10;
   const [pagination, setPagination] = useState({
     page: 1,
     per_page: 10,
@@ -176,6 +176,7 @@ function Products() {
 
       {showForm ? (
         <AddProduct
+          key={editingProduct?.id ?? "new"}
           onAdd={editingProduct ? handleUpdateProduct : handleAddProduct}
           loading={loading}
           initialValues={editingProduct}

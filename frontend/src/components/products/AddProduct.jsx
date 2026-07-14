@@ -1,6 +1,19 @@
 import { useEffect, useState } from "react";
 import { getCategories, getSuppliers } from "../../services/api";
 
+const emptyForm = { name: "", category_id: "", supplier_id: "", price: "", stock: "" };
+
+function productFormValues(product) {
+  if (!product) return emptyForm;
+  return {
+    name: product.name || "",
+    category_id: product.category_id ?? "",
+    supplier_id: product.supplier_id ?? "",
+    price: product.price ?? "",
+    stock: product.stock ?? "",
+  };
+}
+
 function AddProduct({
   onAdd,
   loading = false,
@@ -10,13 +23,7 @@ function AddProduct({
   title = "Add a new product",
   subtitle = "Keep your inventory fresh and easy to track.",
 }) {
-  const [form, setForm] = useState({
-    name: "",
-    category_id: "",
-    supplier_id: "",
-    price: "",
-    stock: "",
-  });
+  const [form, setForm] = useState(() => productFormValues(initialValues));
 
   const [categories, setCategories] = useState([]);
   const [suppliers, setSuppliers] = useState([]);
@@ -26,22 +33,6 @@ function AddProduct({
     getCategories().then(setCategories).catch(() => setCategories([]));
     getSuppliers().then(setSuppliers).catch(() => setSuppliers([]));
   }, []);
-
-  useEffect(() => {
-    if (initialValues) {
-      setForm({
-        name: initialValues.name || "",
-        category_id: initialValues.category_id ?? "",
-        supplier_id: initialValues.supplier_id ?? "",
-        price: initialValues.price ?? "",
-        stock: initialValues.stock ?? "",
-      });
-      return;
-    }
-
-    setForm({ name: "", category_id: "", supplier_id: "", price: "", stock: "" });
-    setErrors({});
-  }, [initialValues]);
 
   const handleChange = (event) => {
     const { name, value } = event.target;
@@ -75,7 +66,7 @@ function AddProduct({
     });
 
     if (!initialValues) {
-      setForm({ name: "", category_id: "", supplier_id: "", price: "", stock: "" });
+      setForm(emptyForm);
       setErrors({});
     }
   };

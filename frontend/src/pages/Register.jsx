@@ -21,7 +21,8 @@ function Register({ onLogin }) {
     try {
       const data = await register(form);
       if (data?.token) {
-        navigate("/login");
+        onLogin(data.token);
+        navigate("/dashboard");
         return;
       }
       throw new Error("No token returned from server");
