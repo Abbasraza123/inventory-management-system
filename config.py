@@ -16,7 +16,6 @@ class Config:
     JWT_ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
     JWT_EXPIRATION_HOURS = int(os.getenv("JWT_EXPIRATION_HOURS", "24"))
 
-    # ── Validation constants ──────────────────────────────────────────
     USERNAME_MIN_LENGTH = 3
     USERNAME_MAX_LENGTH = 30
     PASSWORD_MIN_LENGTH = 8
@@ -24,7 +23,6 @@ class Config:
 
     @classmethod
     def validate(cls):
-        """Abort early if critical configuration is missing."""
         if not cls.SECRET_KEY:
             print("FATAL: SECRET_KEY is not set. Refusing to start.", file=sys.stderr)
             sys.exit(1)

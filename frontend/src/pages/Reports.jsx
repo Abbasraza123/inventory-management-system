@@ -23,10 +23,12 @@ function Reports() {
 
   useEffect(() => {
     const loadReports = async () => {
-      const [dashboardData, productData] = await Promise.all([getDashboardSummary(), getProducts()]);
-      setSummary(dashboardData);
+      try {
+        const [dashboardData, productData] = await Promise.all([getDashboardSummary(), getProducts()]);
+        setSummary(dashboardData);
 
-      const grouped = productData.reduce((accumulator, product) => {
+        const products = productData.products || [];
+        const grouped = products.reduce((accumulator, product) => {
         const key = product.category || "Uncategorized";
         const existing = accumulator.find((item) => item.name === key);
 
@@ -45,6 +47,9 @@ function Reports() {
       }, []);
 
       setChartData(grouped);
+      } catch (error) {
+        console.error("Failed to load reports", error);
+      }
     };
 
     loadReports();

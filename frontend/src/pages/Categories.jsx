@@ -1,22 +1,43 @@
 import { useEffect, useState } from "react";
 import PageHeader from "../components/common/PageHeader";
-import { getCategories } from "../services/api";
+import { createCategory, getCategories } from "../services/api";
 
 function Categories() {
   const [categories, setCategories] = useState([]);
+  const [showForm, setShowForm] = useState(false);
+  const [newName, setNewName] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  const loadCategories = async () => {
+    try {
+      const data = await getCategories();
+      setCategories(data);
+    } catch (err) {
+      setError(err?.response?.data?.error || "Failed to load categories");
+    }
+  };
 
   useEffect(() => {
-    const loadCategories = async () => {
-      try {
-        const data = await getCategories();
-        setCategories(data);
-      } catch (error) {
-        console.error("Failed to load categories", error);
-      }
-    };
-
     loadCategories();
   }, []);
+
+  const handleAdd = async (e) => {
+    e.preventDefault();
+    if (!newName.trim()) return;
+    try {
+      setLoading(true);
+      setError("");
+      await createCategory(newName.trim());
+      setNewName("");
+      setShowForm(false);
+      await loadCategories();
+    } catch (err) {
+      setError(err?.response?.data?.error || "Could not create category");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -24,11 +45,35 @@ function Categories() {
         title="Categories"
         subtitle="Organize your inventory with clear product groups and growth signals."
         action={
-          <button className="rounded-2xl bg-gradient-to-r from-cyan-500 to-blue-600 px-5 py-3 font-semibold text-white shadow-sm transition hover:opacity-90">
-            + Add Category
+          <button
+            onClick={() => { setShowForm((p) => !p); setError(""); }}
+            className="rounded-2xl bg-gradient-to-r from-cyan-500 to-blue-600 px-5 py-3 font-semibold text-white shadow-sm transition hover:opacity-90"
+          >
+            {showForm ? "Cancel" : "+ Add Category"}
           </button>
         }
       />
+
+      {error ? <p className="text-sm text-rose-600">{error}</p> : null}
+
+      {showForm ? (
+        <form onSubmit={handleAdd} className="flex gap-3 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
+          <input
+            value={newName}
+            onChange={(e) => setNewName(e.target.value)}
+            type="text"
+            placeholder="Category name"
+            className="flex-1 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none focus:border-cyan-400"
+          />
+          <button
+            type="submit"
+            disabled={loading || !newName.trim()}
+            className="rounded-2xl bg-gradient-to-r from-cyan-500 to-blue-600 px-5 py-3 font-semibold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-70"
+          >
+            {loading ? "Adding..." : "Add"}
+          </button>
+        </form>
+      ) : null}
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         {categories.map((category) => (

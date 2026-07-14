@@ -1,4 +1,4 @@
-from models import db, Item
+from models import db, Product
 
 
 class Inventory:
@@ -10,8 +10,8 @@ class Inventory:
         db.session.add(item)
         db.session.commit()
 
-    def remove_item(self, sku):
-        item = Item.query.filter_by(sku=sku).first()
+    def remove_item(self, product_id):
+        item = db.session.get(Product, product_id)
 
         if item:
             db.session.delete(item)
@@ -20,8 +20,8 @@ class Inventory:
 
         return False
 
-    def update_item(self, sku, **changes):
-        item = Item.query.filter_by(sku=sku).first()
+    def update_item(self, product_id, **changes):
+        item = db.session.get(Product, product_id)
 
         if item:
 
@@ -34,12 +34,12 @@ class Inventory:
         return False
 
     def list_items(self):
-        return Item.query.order_by(Item.name).all()
+        return Product.query.order_by(Product.name).all()
 
-    def find_by_sku(self, sku):
-        return Item.query.filter_by(sku=sku).first()
+    def find_by_id(self, product_id):
+        return db.session.get(Product, product_id)
 
     def find_by_name(self, keyword):
-        return Item.query.filter(
-            Item.name.ilike(f"%{keyword}%")
+        return Product.query.filter(
+            Product.name.ilike(f"%{keyword}%")
         ).all()

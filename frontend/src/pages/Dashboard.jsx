@@ -19,9 +19,9 @@ function Dashboard() {
   useEffect(() => {
     const loadSummary = async () => {
       try {
-        const [dashboard, products] = await Promise.all([getDashboardSummary(), getProducts()]);
+        const [dashboard, productsResponse] = await Promise.all([getDashboardSummary(), getProducts()]);
         setSummary(dashboard);
-        setRecentProducts(products.slice(0, 3));
+        setRecentProducts((productsResponse.products || []).slice(0, 3));
       } catch (error) {
         console.error("Failed to load dashboard", error);
       }

@@ -1,7 +1,3 @@
-"""
-Comprehensive tests for the production-ready auth system.
-Run with:  python -m pytest tests/test_auth.py -v
-"""
 import json
 import time
 
@@ -13,7 +9,6 @@ from models import User, db
 
 @pytest.fixture()
 def client():
-    """Create a fresh test client with an in-memory database for each test."""
     app.config["TESTING"] = True
     app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///:memory:"
     app.config["SECRET_KEY"] = "test-secret-key-for-pytest"
@@ -28,7 +23,6 @@ def client():
 
 
 def _register(client, **overrides):
-    """Helper – register with sensible defaults, override any field."""
     data = {
         "username": "testuser",
         "email": "test@example.com",
@@ -50,10 +44,6 @@ def _login(client, email="test@example.com", password="Str0ng!Pass"):
     )
 
 
-# ─────────────────────────────────────────────────────────────────────
-#  Registration – happy path
-# ─────────────────────────────────────────────────────────────────────
-
 class TestRegistration:
 
     def test_successful_registration(self, client):
@@ -72,8 +62,6 @@ class TestRegistration:
         body = resp.get_json()
         assert body["user"]["username"] == "padded"
         assert body["user"]["email"] == "pad@example.com"
-
-    # ── Username validation ──────────────────────────────────────
 
     def test_empty_username(self, client):
         resp = _register(client, username="")
@@ -101,8 +89,6 @@ class TestRegistration:
         resp = _register(client, username="good_user_1")
         assert resp.status_code == 201
 
-    # ── Email validation ─────────────────────────────────────────
-
     def test_empty_email(self, client):
         resp = _register(client, email="")
         assert resp.status_code == 400
@@ -122,8 +108,6 @@ class TestRegistration:
         resp = _register(client, email="USER@EXAMPLE.COM")
         assert resp.status_code == 201
         assert resp.get_json()["user"]["email"] == "user@example.com"
-
-    # ── Password validation ──────────────────────────────────────
 
     def test_empty_password(self, client):
         resp = _register(client, password="")
@@ -155,8 +139,6 @@ class TestRegistration:
         assert resp.status_code == 400
         assert "special" in resp.get_json()["details"]["password"]
 
-    # ── Duplicate detection ──────────────────────────────────────
-
     def test_duplicate_username(self, client):
         _register(client)
         resp = _register(client, email="other@example.com")
@@ -168,8 +150,6 @@ class TestRegistration:
         resp = _register(client, username="otheruser")
         assert resp.status_code == 409
         assert "email" in resp.get_json()["details"]
-
-    # ── Malformed body ───────────────────────────────────────────
 
     def test_missing_json_body(self, client):
         resp = client.post("/api/auth/register", content_type="application/json")
@@ -184,8 +164,6 @@ class TestRegistration:
         )
         assert resp.status_code == 400
 
-    # ── Multiple validation errors at once ───────────────────────
-
     def test_multiple_validation_errors(self, client):
         resp = _register(client, username="", email="", password="")
         assert resp.status_code == 400
@@ -194,10 +172,6 @@ class TestRegistration:
         assert "email" in details
         assert "password" in details
 
-
-# ─────────────────────────────────────────────────────────────────────
-#  Login
-# ─────────────────────────────────────────────────────────────────────
 
 class TestLogin:
 
@@ -248,10 +222,6 @@ class TestLogin:
         assert resp.status_code == 400
 
 
-# ─────────────────────────────────────────────────────────────────────
-#  JWT / Protected routes
-# ─────────────────────────────────────────────────────────────────────
-
 class TestJWT:
 
     def _auth_header(self, token):
@@ -283,21 +253,17 @@ class TestJWT:
         assert resp.status_code == 401
 
     def test_expired_token(self, client):
-        """Generate a token with 0-hour expiry so it's already expired."""
         app.config["JWT_EXPIRATION_HOURS"] = 0
         resp = _register(client)
         token = resp.get_json()["token"]
-        # Token is expired immediately (exp == iat)
         time.sleep(1)
         me = client.get("/api/auth/me", headers=self._auth_header(token))
         assert me.status_code == 401
         app.config["JWT_EXPIRATION_HOURS"] = 24  # restore
 
     def test_user_deleted_after_token(self, client):
-        """Token is valid but user was deleted from the database."""
         resp = _register(client)
         token = resp.get_json()["token"]
-        # Delete the user
         with app.app_context():
             user = User.query.first()
             db.session.delete(user)
@@ -307,17 +273,12 @@ class TestJWT:
         assert "no longer exists" in me.get_json()["error"]
 
     def test_token_wrong_secret(self, client):
-        """A token signed with a different key must be rejected."""
         import jwt as pyjwt
 
         token = pyjwt.encode({"sub": "1", "exp": 9999999999}, "wrong-secret", algorithm="HS256")
         resp = client.get("/api/auth/me", headers=self._auth_header(token))
         assert resp.status_code == 401
 
-
-# ─────────────────────────────────────────────────────────────────────
-#  Global error handlers
-# ─────────────────────────────────────────────────────────────────────
 
 class TestErrorHandlers:
 
@@ -333,10 +294,6 @@ class TestErrorHandlers:
         body = resp.get_json()
         assert body["success"] is False
 
-
-# ─────────────────────────────────────────────────────────────────────
-#  Logout
-# ─────────────────────────────────────────────────────────────────────
 
 class TestLogout:
 

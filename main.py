@@ -1,7 +1,7 @@
 import sys
 from app import app
 from inventory import Inventory
-from models import Item
+from models import Product
 
 
 def main():
@@ -9,18 +9,18 @@ def main():
 
     while True:
         print("\n===== Inventory Management System =====")
-        print("1. Add Item")
-        print("2. Remove Item")
-        print("3. Update Item")
+        print("1. Add Product")
+        print("2. Remove Product")
+        print("3. Update Product")
         print("4. Search by Name")
-        print("5. List Items")
+        print("5. List Products")
         print("6. Exit")
 
         choice = input("Enter your choice: ").strip()
 
         if choice == "1":
             try:
-                name = input("Enter Item Name: ").strip()
+                name = input("Enter Product Name: ").strip()
 
                 if not name:
                     print("Error: Name cannot be empty.")
@@ -28,66 +28,64 @@ def main():
 
                 quantity = int(input("Enter Quantity: "))
                 price = float(input("Enter Price: "))
-                sku = input("Enter SKU: ").strip()
 
-                if inventory.find_by_sku(sku):
-                    print("Error: SKU already exists.")
-                    continue
-
-                item = Item(
+                product = Product(
                     name=name,
                     quantity=quantity,
                     price=price,
-                    sku=sku
                 )
 
-                inventory.add_item(item)
+                inventory.add_item(product)
 
-                print("Item added successfully.")
+                print("Product added successfully.")
 
             except ValueError as e:
                 print(f"Error: {e}")
 
         elif choice == "2":
-            sku = input("Enter SKU to remove: ").strip()
+            try:
+                product_id = int(input("Enter Product ID to remove: "))
+            except ValueError:
+                print("Error: Invalid ID.")
+                continue
 
-            if inventory.remove_item(sku):
-                print("Item removed successfully.")
+            if inventory.remove_item(product_id):
+                print("Product removed successfully.")
             else:
-                print("Item not found.")
+                print("Product not found.")
 
         elif choice == "3":
             try:
-                sku = input("Enter SKU to update: ").strip()
+                product_id = int(input("Enter Product ID to update: "))
 
                 quantity = int(input("Enter New Quantity: "))
                 price = float(input("Enter New Price: "))
 
                 if inventory.update_item(
-                    sku,
+                    product_id,
                     quantity=quantity,
                     price=price
                 ):
-                    print("Item updated successfully.")
+                    print("Product updated successfully.")
                 else:
-                    print("Item not found.")
+                    print("Product not found.")
 
             except ValueError as e:
                 print(f"Error: {e}")
 
         elif choice == "4":
-            name = input("Enter Item Name to search: ").strip()
+            name = input("Enter Product Name to search: ").strip()
 
             results = inventory.find_by_name(name)
 
             if results:
-                print("\nMatching Items")
+                print("\nMatching Products")
                 print("-" * 50)
 
                 for item in results:
                     print(item.to_dict())
             else:
-                print("No matching items found.")
+                print("No matching products found.")
 
         elif choice == "5":
             items = inventory.list_items()

@@ -1,10 +1,8 @@
-/* General Page */
 body {
     background: #f4f7fb;
     font-family: Arial, Helvetica, sans-serif;
 }
 
-/* Heading */
 h1 {
     font-weight: bold;
     color: #2c3e50;
@@ -12,7 +10,6 @@ h1 {
     margin-bottom: 30px;
 }
 
-/* Cards */
 .card {
     border: none;
     border-radius: 15px;
@@ -35,7 +32,6 @@ h1 {
     font-weight: bold;
 }
 
-/* Search & Add Form */
 form {
     margin-bottom: 20px;
 }
@@ -54,7 +50,6 @@ form {
     transform: scale(1.03);
 }
 
-/* Table */
 .table {
     background: white;
     border-radius: 12px;
@@ -77,7 +72,6 @@ form {
     background: #eef5ff;
 }
 
-/* Inputs inside Update Form */
 table input {
     width: 90px;
     border: 1px solid #ced4da;
@@ -87,13 +81,11 @@ table input {
     text-align: center;
 }
 
-/* Badge */
 .badge {
     margin-left: 5px;
     font-size: 12px;
 }
 
-/* Buttons */
 .btn-success {
     background: #198754;
 }
@@ -106,7 +98,6 @@ table input {
     background: #dc3545;
 }
 
-/* Footer spacing */
 .container {
     padding-bottom: 40px;
 }

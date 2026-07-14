@@ -25,8 +25,13 @@ export const getProfile = () => api.get("/auth/me").then((response) => response.
 export const getDashboardSummary = () =>
   api.get("/dashboard").then((response) => response.data);
 
-export const getProducts = () =>
-  api.get("/products").then((response) => response.data);
+export const getProducts = (page = 1, limit = 10) =>
+  api
+    .get("/products", {
+      params: { page, limit },
+    })
+    .then((response) => response.data);
+
 
 export const createProduct = (product) =>
   api.post("/products", product).then((response) => response.data);
@@ -39,7 +44,13 @@ export const deleteProduct = (id) => api.delete(`/products/${id}`);
 export const getCategories = () =>
   api.get("/categories").then((response) => response.data);
 
+export const createCategory = (name) =>
+  api.post("/categories", { name }).then((response) => response.data);
+
 export const getSuppliers = () =>
   api.get("/suppliers").then((response) => response.data);
+
+export const createSupplier = (data) =>
+  api.post("/suppliers", data).then((response) => response.data);
 
 export default api;

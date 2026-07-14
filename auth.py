@@ -10,7 +10,6 @@ from config import Config
 from models import User, db
 
 
-# ── Regex patterns ────────────────────────────────────────────────────
 EMAIL_PATTERN = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 USERNAME_PATTERN = re.compile(r"^[a-zA-Z0-9_]+$")
 PASSWORD_UPPER = re.compile(r"[A-Z]")
@@ -19,15 +18,13 @@ PASSWORD_DIGIT = re.compile(r"[0-9]")
 PASSWORD_SPECIAL = re.compile(r"[^a-zA-Z0-9]")
 
 
-# ── Helpers ───────────────────────────────────────────────────────────
+
 
 def _success(payload: dict, status: int = 200):
-    """Build a uniform success envelope."""
     return jsonify({"success": True, **payload}), status
 
 
 def _error(message: str, status: int, details: dict | None = None):
-    """Build a uniform error envelope."""
     body: dict = {"success": False, "error": message}
     if details:
         body["details"] = details
@@ -35,7 +32,6 @@ def _error(message: str, status: int, details: dict | None = None):
 
 
 def _get_auth_config():
-    """Return JWT-related config from the current app or fallback to Config class."""
     if has_app_context():
         return current_app.config
     return {
@@ -45,10 +41,9 @@ def _get_auth_config():
     }
 
 
-# ── JWT utilities ─────────────────────────────────────────────────────
+
 
 def generate_token(user_id: int) -> str:
-    """Create a JWT containing user id, issued-at, and expiration."""
     config = _get_auth_config()
     now = dt.datetime.now(dt.timezone.utc)
     expiration = now + dt.timedelta(hours=int(config["JWT_EXPIRATION_HOURS"]))
@@ -61,7 +56,6 @@ def generate_token(user_id: int) -> str:
 
 
 def decode_token(token: str) -> dict | None:
-    """Decode and validate a JWT.  Returns the payload dict or None."""
     try:
         config = _get_auth_config()
         return jwt.decode(
@@ -75,10 +69,9 @@ def decode_token(token: str) -> dict | None:
         return None
 
 
-# ── Request-level auth helpers ────────────────────────────────────────
+
 
 def _extract_current_user():
-    """Extract & validate the Bearer token, return (User | None, error_response | None)."""
     header = request.headers.get("Authorization", "")
 
     if not header:
@@ -104,7 +97,6 @@ def _extract_current_user():
 
 
 def auth_required(func):
-    """Decorator – protects a route by requiring a valid JWT."""
     @wraps(func)
     def decorated(*args, **kwargs):
         user, err = _extract_current_user()
@@ -115,13 +107,12 @@ def auth_required(func):
     return decorated
 
 
-# ── Validators ────────────────────────────────────────────────────────
+
 
 def _validate_registration(payload: dict) -> dict:
-    """Return a dict of field → error message for every failed validation rule."""
     errors: dict[str, str] = {}
 
-    # ── Username ──────────────────────────────────────────────────
+
     username = (payload.get("username") or "").strip()
     if not username:
         errors["username"] = "Username is required"
@@ -138,7 +129,7 @@ def _validate_registration(payload: dict) -> dict:
             "Username can only contain letters, numbers, and underscores"
         )
 
-    # ── Email ─────────────────────────────────────────────────────
+
     email = (payload.get("email") or "").strip().lower()
     if not email:
         errors["email"] = "Email is required"
@@ -149,7 +140,7 @@ def _validate_registration(payload: dict) -> dict:
     elif not EMAIL_PATTERN.match(email):
         errors["email"] = "Invalid email format"
 
-    # ── Password ──────────────────────────────────────────────────
+
     password = payload.get("password") or ""
     if not password:
         errors["password"] = "Password is required"
@@ -176,7 +167,6 @@ def _validate_registration(payload: dict) -> dict:
 
 
 def _validate_login(payload: dict) -> dict:
-    """Return a dict of field → error message for login validation."""
     errors: dict[str, str] = {}
 
     email = (payload.get("email") or "").strip()
@@ -190,12 +180,12 @@ def _validate_login(payload: dict) -> dict:
     return errors
 
 
-# ── Blueprint factory ─────────────────────────────────────────────────
+
 
 def create_auth_blueprint() -> Blueprint:
     auth_bp = Blueprint("auth", __name__)
 
-    # ── Register ──────────────────────────────────────────────────
+    
     @auth_bp.route("/register", methods=["POST"])
     def register():
         try:
@@ -211,7 +201,7 @@ def create_auth_blueprint() -> Blueprint:
             email = payload["email"].strip().lower()
             password = payload["password"]
 
-            # Duplicate checks
+            
             if User.query.filter_by(username=username).first():
                 return _error(
                     "Validation failed", 409,
@@ -245,7 +235,7 @@ def create_auth_blueprint() -> Blueprint:
             db.session.rollback()
             return _error("An unexpected error occurred", 500)
 
-    # ── Login ─────────────────────────────────────────────────────
+
     @auth_bp.route("/login", methods=["POST"])
     def login():
         try:
@@ -276,13 +266,13 @@ def create_auth_blueprint() -> Blueprint:
         except Exception:
             return _error("An unexpected error occurred", 500)
 
-    # ── Me (current user) ─────────────────────────────────────────
+    
     @auth_bp.route("/me", methods=["GET"])
     @auth_required
     def me():
         return _success({"user": request.current_user.to_dict()})
 
-    # ── Logout (stateless – just acknowledges) ────────────────────
+    
     @auth_bp.route("/logout", methods=["POST"])
     def logout():
         return _success({"message": "Logged out successfully"})
