@@ -81,6 +81,59 @@ table input {
     text-align: center;
 }
 
+.table-responsive {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    border-radius: 12px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+}
+
+.table-responsive .table {
+    box-shadow: none;
+    margin-bottom: 0;
+}
+
+@media (max-width: 768px) {
+    .container {
+        padding-left: 12px;
+        padding-right: 12px;
+    }
+
+    h1 {
+        font-size: 1.5rem;
+        margin-bottom: 20px;
+    }
+
+    .card h5 {
+        font-size: 14px;
+    }
+
+    .card h2 {
+        font-size: 1.4rem;
+    }
+
+    .row.mb-4 .col-md-4 {
+        margin-bottom: 12px;
+    }
+
+    table input {
+        width: 70px;
+        font-size: 12px;
+        padding: 3px 5px;
+    }
+
+    .table th,
+    .table td {
+        font-size: 13px;
+        padding: 8px 6px;
+    }
+
+    .btn-sm {
+        font-size: 11px;
+        padding: 4px 8px;
+    }
+}
+
 .badge {
     margin-left: 5px;
     font-size: 12px;
