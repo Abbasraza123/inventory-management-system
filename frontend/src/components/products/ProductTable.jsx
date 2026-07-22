@@ -1,4 +1,4 @@
-function ProductTable({ products, onEdit, onDelete }) {
+function ProductTable({ products, onEdit, onDelete, canEdit = true, canDelete = true }) {
   const formatPrice = (price) => {
     const numericValue = Number(price || 0);
     return `$${numericValue.toLocaleString()}`;
@@ -15,7 +15,9 @@ function ProductTable({ products, onEdit, onDelete }) {
               <th className="px-5 py-4 text-xs font-semibold uppercase tracking-wider text-slate-500">Price</th>
               <th className="px-5 py-4 text-xs font-semibold uppercase tracking-wider text-slate-500">Stock</th>
               <th className="px-5 py-4 text-xs font-semibold uppercase tracking-wider text-slate-500">Status</th>
-              <th className="px-5 py-4 text-xs font-semibold uppercase tracking-wider text-slate-500">Actions</th>
+              {(canEdit || canDelete) && (
+                <th className="px-5 py-4 text-xs font-semibold uppercase tracking-wider text-slate-500">Actions</th>
+              )}
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100 bg-white">
@@ -41,22 +43,28 @@ function ProductTable({ products, onEdit, onDelete }) {
                       {isLowStock ? "Low stock" : "In stock"}
                     </span>
                   </td>
-                  <td className="whitespace-nowrap px-5 py-4">
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => onEdit(product)}
-                        className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 transition-all hover:border-cyan-300 hover:bg-cyan-50 hover:text-cyan-700"
-                      >
-                        Edit
-                      </button>
-                      <button
-                        onClick={() => onDelete(product.id)}
-                        className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 transition-all hover:border-rose-300 hover:bg-rose-50 hover:text-rose-700"
-                      >
-                        Delete
-                      </button>
-                    </div>
-                  </td>
+                  {(canEdit || canDelete) && (
+                    <td className="whitespace-nowrap px-5 py-4">
+                      <div className="flex gap-2">
+                        {canEdit && (
+                          <button
+                            onClick={() => onEdit(product)}
+                            className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 transition-all hover:border-cyan-300 hover:bg-cyan-50 hover:text-cyan-700"
+                          >
+                            Edit
+                          </button>
+                        )}
+                        {canDelete && (
+                          <button
+                            onClick={() => onDelete(product.id)}
+                            className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 transition-all hover:border-rose-300 hover:bg-rose-50 hover:text-rose-700"
+                          >
+                            Delete
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  )}
                 </tr>
               );
             })}

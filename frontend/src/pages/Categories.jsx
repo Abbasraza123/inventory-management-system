@@ -1,14 +1,18 @@
 import { useEffect, useState } from "react";
 import { Tag } from "lucide-react";
+import { useAuth } from "../contexts/AuthContext";
 import PageHeader from "../components/common/PageHeader";
 import { createCategory, getCategories } from "../services/api";
 
 function Categories() {
+  const { user } = useAuth();
   const [categories, setCategories] = useState([]);
   const [showForm, setShowForm] = useState(false);
   const [newName, setNewName] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  const canCreate = user?.role === "Super Admin" || user?.role === "Inventory Manager";
 
   const loadCategories = async () => {
     try {
@@ -20,9 +24,17 @@ function Categories() {
   };
 
   useEffect(() => {
-    getCategories()
-      .then(setCategories)
-      .catch((err) => setError(err?.response?.data?.error || "Failed to load categories"));
+    let cancelled = false;
+    const load = async () => {
+      try {
+        const data = await getCategories();
+        if (!cancelled) setCategories(data);
+      } catch (err) {
+        if (!cancelled) setError(err?.response?.data?.error || "Failed to load categories");
+      }
+    };
+    load();
+    return () => { cancelled = true; };
   }, []);
 
   const handleAdd = async (e) => {
@@ -50,18 +62,20 @@ function Categories() {
         title="Categories"
         subtitle="Organize your inventory with clear product groups and growth signals."
         action={
-          <button
-            onClick={() => { setShowForm((p) => !p); setError(""); }}
-            className="rounded-2xl bg-gradient-to-r from-cyan-500 to-blue-600 px-5 py-3 font-semibold text-white shadow-sm transition hover:opacity-90"
-          >
-            {showForm ? "Cancel" : "+ Add Category"}
-          </button>
+          canCreate ? (
+            <button
+              onClick={() => { setShowForm((p) => !p); setError(""); }}
+              className="rounded-2xl bg-gradient-to-r from-cyan-500 to-blue-600 px-5 py-3 font-semibold text-white shadow-sm transition hover:opacity-90"
+            >
+              {showForm ? "Cancel" : "+ Add Category"}
+            </button>
+          ) : null
         }
       />
 
       {error ? <p className="text-sm text-rose-600">{error}</p> : null}
 
-      {showForm ? (
+      {showForm && canCreate ? (
         <form onSubmit={handleAdd} className="flex flex-col gap-3 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:flex-row sm:items-end">
           <div className="flex-1">
             <label className="mb-2 block text-sm font-medium text-slate-700">Category name</label>

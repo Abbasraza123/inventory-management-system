@@ -1,12 +1,18 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, Navigate, useNavigate } from "react-router-dom";
+import { useAuth } from "../contexts/AuthContext";
 import { register } from "../services/api";
 
-function Register({ onLogin }) {
+function Register() {
   const navigate = useNavigate();
+  const { handleLogin, isAuthenticated } = useAuth();
   const [form, setForm] = useState({ username: "", email: "", password: "" });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  if (isAuthenticated) {
+    return <Navigate to="/dashboard" replace />;
+  }
 
   const handleChange = (event) => {
     const { name, value } = event.target;
@@ -21,7 +27,7 @@ function Register({ onLogin }) {
     try {
       const data = await register(form);
       if (data?.token) {
-        onLogin(data.token);
+        handleLogin(data.token, data.user);
         navigate("/dashboard");
         return;
       }

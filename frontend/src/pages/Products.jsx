@@ -1,4 +1,5 @@
-﻿import { useEffect, useState } from "react";
+﻿import { useEffect, useRef, useState } from "react";
+import { useAuth } from "../contexts/AuthContext";
 import PageHeader from "../components/common/PageHeader";
 import AddProduct from "../components/products/AddProduct";
 import ProductTable from "../components/products/ProductTable";
@@ -6,6 +7,7 @@ import SearchBar from "../components/products/SearchBar";
 import { createProduct, deleteProduct, getProducts, updateProduct } from "../services/api";
 
 function Products() {
+  const { user } = useAuth();
   const [showForm, setShowForm] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
 
@@ -15,6 +17,7 @@ function Products() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const successTimeoutRef = useRef(null);
 
   const [page, setPage] = useState(1);
   const limit = 10;
@@ -28,6 +31,22 @@ function Products() {
     next_page: null,
     prev_page: null,
   });
+
+  const canCreate = user?.role === "Super Admin" || user?.role === "Inventory Manager";
+  const canEdit = canCreate;
+  const canDelete = canCreate;
+
+  useEffect(() => {
+    return () => {
+      if (successTimeoutRef.current) clearTimeout(successTimeoutRef.current);
+    };
+  }, []);
+
+  const showSuccess = (msg) => {
+    setSuccess(msg);
+    if (successTimeoutRef.current) clearTimeout(successTimeoutRef.current);
+    successTimeoutRef.current = setTimeout(() => setSuccess(""), 3000);
+  };
 
   useEffect(() => {
     const loadProducts = async () => {
@@ -53,14 +72,16 @@ function Products() {
     ? products.filter((product) => {
         const term = searchTerm.toLowerCase();
         return (
-          product.name.toLowerCase().includes(term) ||
+          (product.name || "").toLowerCase().includes(term) ||
           (product.category || "").toLowerCase().includes(term)
         );
       })
     : products;
 
-  const lowStockCount = products.filter((product) => product.stock <= 5).length;
-  const totalStock = products.reduce((sum, product) => sum + product.stock, 0);
+  // These are derived from the current page only (the API paginates), so they
+  // are labelled as "this page" rather than presented as catalog-wide totals.
+  const lowStockCount = products.filter((product) => (product.stock || 0) <= 5).length;
+  const totalStock = products.reduce((sum, product) => sum + (product.stock || 0), 0);
 
 
   const refresh = async () => {
@@ -82,8 +103,7 @@ function Products() {
       await refresh();
       setShowForm(false);
       setError("");
-      setSuccess("Product added successfully.");
-      setTimeout(() => setSuccess(""), 3000);
+      showSuccess("Product added successfully.");
     } catch (err) {
       setError(err?.response?.data?.error || "Could not save the product.");
     } finally {
@@ -100,8 +120,7 @@ function Products() {
       setEditingProduct(null);
       setShowForm(false);
       setError("");
-      setSuccess("Product updated successfully.");
-      setTimeout(() => setSuccess(""), 3000);
+      showSuccess("Product updated successfully.");
     } catch (err) {
       setError(err?.response?.data?.error || "Could not update the product.");
     } finally {
@@ -144,17 +163,19 @@ function Products() {
         title="Products"
         subtitle="Track stock levels, update catalog items, and stay ahead of reorders."
         action={
-          <button
-            onClick={() => {
-              setShowForm((previous) => !previous);
-              if (showForm) {
-                setEditingProduct(null);
-              }
-            }}
-            className="rounded-2xl bg-gradient-to-r from-cyan-500 to-blue-600 px-5 py-3 font-semibold text-white shadow-sm transition hover:opacity-90"
-          >
-            {showForm ? "Hide form" : "+ Add Product"}
-          </button>
+          canCreate ? (
+            <button
+              onClick={() => {
+                setShowForm((previous) => !previous);
+                if (showForm) {
+                  setEditingProduct(null);
+                }
+              }}
+              className="rounded-2xl bg-gradient-to-r from-cyan-500 to-blue-600 px-5 py-3 font-semibold text-white shadow-sm transition hover:opacity-90"
+            >
+              {showForm ? "Hide form" : "+ Add Product"}
+            </button>
+          ) : null
         }
       />
 
@@ -165,11 +186,11 @@ function Products() {
         </div>
 
         <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-          <p className="text-sm text-slate-500">Stock in hand</p>
+          <p className="text-sm text-slate-500">Stock in hand (this page)</p>
           <p className="mt-2 text-2xl font-semibold text-emerald-600">{totalStock}</p>
         </div>
         <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-          <p className="text-sm text-slate-500">Low stock alerts</p>
+          <p className="text-sm text-slate-500">Low stock alerts (this page)</p>
           <p className="mt-2 text-2xl font-semibold text-rose-600">{lowStockCount}</p>
         </div>
       </div>
@@ -204,7 +225,13 @@ function Products() {
           <p className="text-sm text-slate-500">Loading products...</p>
         ) : (
           <>
-            <ProductTable products={filteredProducts} onEdit={startEditing} onDelete={handleDeleteProduct} />
+            <ProductTable
+              products={filteredProducts}
+              onEdit={canEdit ? startEditing : null}
+              onDelete={canDelete ? handleDeleteProduct : null}
+              canEdit={canEdit}
+              canDelete={canDelete}
+            />
 
             <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div className="text-xs text-slate-500">
@@ -228,13 +255,12 @@ function Products() {
                     const current = pagination.page || 1;
                     const pages = [];
 
-                    // Small window around current
                     const windowSize = 2;
                     const start = Math.max(1, current - windowSize);
                     const end = Math.min(total, current + windowSize);
 
                     if (start > 1) pages.push(1);
-                    if (start > 2) pages.push(null); // ellipsis
+                    if (start > 2) pages.push(null);
 
                     for (let p = start; p <= end; p++) pages.push(p);
 

@@ -1,49 +1,94 @@
 import { motion } from "framer-motion";
-import { AlertTriangle, ArrowRight, Package2, TrendingUp } from "lucide-react";
+import { AlertTriangle, ArrowRight, DollarSign, Package, Package2, ShoppingCart, TrendingUp, Truck, Users } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { useAuth } from "../contexts/AuthContext";
 import PageHeader from "../components/common/PageHeader";
 import StatCard from "../components/dashboard/StatCard";
 import { getDashboardSummary, getProducts } from "../services/api";
 
 function Dashboard() {
-  const [summary, setSummary] = useState({
-    total_products: 0,
-    inventory_value: 0,
-    low_stock_items: 0,
-    total_categories: 0,
-    total_suppliers: 0,
-  });
+  const { user } = useAuth();
+  const [summary, setSummary] = useState({});
   const [recentProducts, setRecentProducts] = useState([]);
 
   useEffect(() => {
     const loadSummary = async () => {
       try {
-        const [dashboard, productsResponse] = await Promise.all([getDashboardSummary(), getProducts()]);
+        const [dashboard, productsResponse] = await Promise.all([
+          getDashboardSummary(),
+          getProducts(1, 5),
+        ]);
         setSummary(dashboard);
         setRecentProducts((productsResponse.products || []).slice(0, 5));
       } catch (error) {
         console.error("Failed to load dashboard", error);
       }
     };
-
     loadSummary();
   }, []);
 
-  const stats = [
-    { title: "Total Products", value: summary.total_products.toString(), color: "text-cyan-600", accent: "bg-cyan-500" },
-    { title: "Inventory Value", value: `$${summary.inventory_value.toLocaleString()}`, color: "text-emerald-600", accent: "bg-emerald-500" },
-    { title: "Low Stock", value: summary.low_stock_items.toString(), color: "text-rose-600", accent: "bg-rose-500" },
-    { title: "Categories", value: summary.total_categories.toString(), color: "text-violet-600", accent: "bg-violet-500" },
-  ];
+  const role = user?.role || "";
 
-  const alerts = ["Keyboard is below reorder threshold", "Mouse stock is running thin", "One supplier delivery is delayed"];
+  const getStatsForRole = () => {
+    switch (role) {
+      case "Super Admin":
+        return [
+          { title: "Total Products", value: String(summary.total_products ?? 0), color: "text-cyan-600", accent: "bg-cyan-500", icon: Package },
+          { title: "Total Users", value: String(summary.total_users ?? 0), color: "text-blue-600", accent: "bg-blue-500", icon: Users },
+          { title: "Total Suppliers", value: String(summary.total_suppliers ?? 0), color: "text-violet-600", accent: "bg-violet-500", icon: Truck },
+          { title: "Low Stock", value: String(summary.low_stock_items ?? 0), color: "text-rose-600", accent: "bg-rose-500", icon: AlertTriangle },
+          { title: "Inventory Value", value: `$${(summary.inventory_value ?? 0).toLocaleString()}`, color: "text-emerald-600", accent: "bg-emerald-500", icon: DollarSign },
+        ];
+      case "Inventory Manager":
+        return [
+          { title: "Total Products", value: String(summary.total_products ?? 0), color: "text-cyan-600", accent: "bg-cyan-500", icon: Package },
+          { title: "Low Stock", value: String(summary.low_stock_items ?? 0), color: "text-rose-600", accent: "bg-rose-500", icon: AlertTriangle },
+          { title: "Stock Movements", value: String(summary.stock_movements_today ?? 0), color: "text-amber-600", accent: "bg-amber-500", icon: TrendingUp },
+          { title: "Inventory Value", value: `$${(summary.inventory_value ?? 0).toLocaleString()}`, color: "text-emerald-600", accent: "bg-emerald-500", icon: DollarSign },
+        ];
+      case "Sales & Purchase Manager":
+        return [
+          { title: "Total Suppliers", value: String(summary.total_suppliers ?? 0), color: "text-violet-600", accent: "bg-violet-500", icon: Truck },
+          { title: "Inventory Value", value: `$${(summary.inventory_value ?? 0).toLocaleString()}`, color: "text-emerald-600", accent: "bg-emerald-500", icon: DollarSign },
+          { title: "Revenue", value: `$${(summary.revenue ?? 0).toLocaleString()}`, color: "text-cyan-600", accent: "bg-cyan-500", icon: TrendingUp },
+          { title: "Orders", value: String(summary.total_orders ?? 0), color: "text-blue-600", accent: "bg-blue-500", icon: ShoppingCart },
+        ];
+      case "Store Keeper":
+        return [
+          { title: "Total Products", value: String(summary.total_products ?? 0), color: "text-cyan-600", accent: "bg-cyan-500", icon: Package },
+          { title: "Low Stock", value: String(summary.low_stock_items ?? 0), color: "text-rose-600", accent: "bg-rose-500", icon: AlertTriangle },
+        ];
+      default:
+        return [
+          { title: "Total Products", value: String(summary.total_products ?? 0), color: "text-cyan-600", accent: "bg-cyan-500", icon: Package },
+          { title: "Low Stock", value: String(summary.low_stock_items ?? 0), color: "text-rose-600", accent: "bg-rose-500", icon: AlertTriangle },
+        ];
+    }
+  };
+
+  const stats = getStatsForRole();
+
+  const getSubtitle = () => {
+    switch (role) {
+      case "Super Admin":
+        return `Full system overview. ${summary.total_products ?? 0} products, ${summary.total_users ?? 0} users, and ${summary.low_stock_items ?? 0} low-stock alerts.`;
+      case "Inventory Manager":
+        return `Inventory health check. ${summary.total_products ?? 0} products tracked, ${summary.low_stock_items ?? 0} alerts to watch.`;
+      case "Sales & Purchase Manager":
+        return `Business operations overview. Track revenue, orders, and supplier performance.`;
+      case "Store Keeper":
+        return `Warehouse overview. ${summary.total_products ?? 0} products, ${summary.low_stock_items ?? 0} items need attention.`;
+      default:
+        return "Your inventory health looks strong today.";
+    }
+  };
 
   return (
     <div className="space-y-8">
       <PageHeader
         title="Dashboard"
-        subtitle="Your inventory health looks strong today. Keep an eye on the alerts below."
+        subtitle={getSubtitle()}
       />
 
       <motion.div
@@ -55,10 +100,9 @@ function Dashboard() {
         <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
           <div className="max-w-2xl">
             <p className="text-sm font-medium tracking-wide text-cyan-200">Today at a glance</p>
-            <h2 className="mt-3 text-2xl font-semibold lg:text-3xl">You're staying ahead of stock issues.</h2>
-            <p className="mt-3 text-sm leading-relaxed text-slate-300 lg:text-base">
-              {summary.total_products} products are currently in the system, with {summary.low_stock_items} low-stock alerts to watch.
-            </p>
+            <h2 className="mt-3 text-2xl font-semibold lg:text-3xl">
+              Welcome back, {user?.username || "User"}
+            </h2>
           </div>
 
           <div className="flex flex-wrap gap-3">
@@ -67,12 +111,6 @@ function Dashboard() {
               className="inline-flex items-center gap-2 rounded-2xl bg-white/15 px-5 py-2.5 text-sm font-medium text-white backdrop-blur transition hover:bg-white/25"
             >
               Manage products <ArrowRight className="h-4 w-4" />
-            </Link>
-            <Link
-              to="/reports"
-              className="rounded-2xl border border-white/20 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-white/10"
-            >
-              See reports
             </Link>
           </div>
         </div>
@@ -157,24 +195,34 @@ function Dashboard() {
               <AlertTriangle className="h-5 w-5" />
             </div>
             <div>
-              <h3 className="text-xl font-semibold text-slate-800">Action needed</h3>
-              <p className="text-sm text-slate-500">Items that deserve your attention.</p>
+              <h3 className="text-xl font-semibold text-slate-800">Quick Actions</h3>
+              <p className="text-sm text-slate-500">Common tasks for your role.</p>
             </div>
           </div>
 
           <div className="space-y-3">
-            {alerts.map((alert, i) => (
-              <motion.div
-                key={alert}
-                initial={{ opacity: 0, x: -8 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.3, delay: 0.4 + i * 0.08 }}
-                className="flex items-start gap-3 rounded-2xl border border-slate-100 bg-slate-50 p-4 transition hover:border-amber-200 hover:bg-amber-50/50"
-              >
-                <Package2 className="mt-0.5 h-4 w-4 shrink-0 text-cyan-600" />
-                <p className="text-sm text-slate-600">{alert}</p>
-              </motion.div>
-            ))}
+            <Link to="/products" className="flex items-center gap-3 rounded-2xl border border-slate-100 bg-slate-50 p-4 transition hover:border-cyan-200 hover:bg-cyan-50/50">
+              <Package2 className="h-4 w-4 shrink-0 text-cyan-600" />
+              <p className="text-sm font-medium text-slate-600">View Products</p>
+            </Link>
+            {(role === "Super Admin" || role === "Inventory Manager" || role === "Store Keeper") && (
+              <Link to="/inventory" className="flex items-center gap-3 rounded-2xl border border-slate-100 bg-slate-50 p-4 transition hover:border-cyan-200 hover:bg-cyan-50/50">
+                <TrendingUp className="h-4 w-4 shrink-0 text-emerald-600" />
+                <p className="text-sm font-medium text-slate-600">Stock Operations</p>
+              </Link>
+            )}
+            {role === "Super Admin" && (
+              <Link to="/users" className="flex items-center gap-3 rounded-2xl border border-slate-100 bg-slate-50 p-4 transition hover:border-cyan-200 hover:bg-cyan-50/50">
+                <Users className="h-4 w-4 shrink-0 text-violet-600" />
+                <p className="text-sm font-medium text-slate-600">Manage Users</p>
+              </Link>
+            )}
+            {(role === "Super Admin" || role === "Sales & Purchase Manager") && (
+              <Link to="/reports" className="flex items-center gap-3 rounded-2xl border border-slate-100 bg-slate-50 p-4 transition hover:border-cyan-200 hover:bg-cyan-50/50">
+                <DollarSign className="h-4 w-4 shrink-0 text-amber-600" />
+                <p className="text-sm font-medium text-slate-600">View Reports</p>
+              </Link>
+            )}
           </div>
         </motion.div>
       </div>

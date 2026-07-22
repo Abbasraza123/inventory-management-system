@@ -1,8 +1,10 @@
 import { Bell, LogOut, Search, UserCircle2 } from "lucide-react";
 import { useState } from "react";
+import { useAuth } from "../../contexts/AuthContext";
 
 function Navbar({ onLogout }) {
   const [searchOpen, setSearchOpen] = useState(false);
+  const { user } = useAuth();
 
   const today = new Date().toLocaleDateString("en-US", {
     weekday: "long",
@@ -46,13 +48,19 @@ function Navbar({ onLogout }) {
             <div className="flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-cyan-400 to-blue-600">
               <UserCircle2 className="h-4 w-4 text-white" />
             </div>
-            <span className="text-sm font-medium text-slate-700">Admin</span>
+            <div className="flex flex-col">
+              <span className="text-sm font-medium text-slate-700">{user?.username || "User"}</span>
+              {user?.role && (
+                <span className="text-[10px] font-medium text-slate-400">{user.role}</span>
+              )}
+            </div>
           </div>
 
           <button
             onClick={onLogout}
             className="rounded-full border border-slate-200 p-2 text-slate-500 transition hover:border-rose-300 hover:bg-rose-50 hover:text-rose-600"
             title="Logout"
+            aria-label="Logout"
           >
             <LogOut className="h-4 w-4" />
           </button>

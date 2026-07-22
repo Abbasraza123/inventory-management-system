@@ -1,17 +1,39 @@
 import { useState } from "react";
 import { NavLink } from "react-router-dom";
-import { BarChart3, Boxes, LayoutDashboard, Menu, Package, Tag, Truck, X } from "lucide-react";
+import {
+  BarChart3,
+  Boxes,
+  LayoutDashboard,
+  Menu,
+  Package,
+  Settings,
+  Tag,
+  Truck,
+  Users,
+  Warehouse,
+  X,
+} from "lucide-react";
+import { useAuth } from "../../contexts/AuthContext";
+
+const allLinks = [
+  { name: "Dashboard", path: "/dashboard", icon: LayoutDashboard, permission: "dashboard:read" },
+  { name: "Products", path: "/products", icon: Package, permission: "products:read" },
+  { name: "Categories", path: "/categories", icon: Tag, permission: "categories:read" },
+  { name: "Suppliers", path: "/suppliers", icon: Truck, permission: "suppliers:read" },
+  { name: "Inventory", path: "/inventory", icon: Warehouse, permission: "inventory:read_history" },
+  { name: "Reports", path: "/reports", icon: BarChart3, permission: "reports:read" },
+  { name: "Users", path: "/users", icon: Users, permission: "users:read" },
+  { name: "Settings", path: "/settings", icon: Settings, permission: "settings:read" },
+];
 
 function Sidebar() {
   const [open, setOpen] = useState(false);
+  const { user } = useAuth();
 
-  const links = [
-    { name: "Dashboard", path: "/dashboard", icon: LayoutDashboard },
-    { name: "Products", path: "/products", icon: Package },
-    { name: "Categories", path: "/categories", icon: Tag },
-    { name: "Suppliers", path: "/suppliers", icon: Truck },
-    { name: "Reports", path: "/reports", icon: BarChart3 },
-  ];
+  const links = allLinks.filter((link) => {
+    if (user?.role === "Super Admin") return true;
+    return hasPermissionFor(link.permission, user);
+  });
 
   return (
     <>
@@ -54,6 +76,15 @@ function Sidebar() {
           </button>
         </div>
 
+        {user && (
+          <div className="mb-6 rounded-2xl border border-slate-800 bg-slate-900/50 px-4 py-3">
+            <p className="text-sm font-semibold text-white">{user.username}</p>
+            <span className="mt-1 inline-block rounded-full bg-cyan-500/20 px-2.5 py-0.5 text-[11px] font-medium text-cyan-300">
+              {user.role || "No role"}
+            </span>
+          </div>
+        )}
+
         <p className="mb-3 px-4 text-[11px] font-semibold uppercase tracking-widest text-slate-500">
           Navigation
         </p>
@@ -92,6 +123,13 @@ function Sidebar() {
       </aside>
     </>
   );
+}
+
+function hasPermissionFor(permission, user) {
+  if (!user || !user.role) return false;
+  if (user.role === "Super Admin") return true;
+  if (user.permissions) return user.permissions.includes(permission);
+  return false;
 }
 
 export default Sidebar;

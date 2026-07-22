@@ -1,14 +1,18 @@
 import { useEffect, useState } from "react";
 import { Mail, MapPin, Phone, Truck } from "lucide-react";
+import { useAuth } from "../contexts/AuthContext";
 import PageHeader from "../components/common/PageHeader";
 import { createSupplier, getSuppliers } from "../services/api";
 
 function Suppliers() {
+  const { user } = useAuth();
   const [suppliers, setSuppliers] = useState([]);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ name: "", contact: "", email: "", address: "" });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  const canCreate = user?.role === "Super Admin" || user?.role === "Inventory Manager";
 
   const loadSuppliers = async () => {
     try {
@@ -20,9 +24,17 @@ function Suppliers() {
   };
 
   useEffect(() => {
-    getSuppliers()
-      .then(setSuppliers)
-      .catch((err) => setError(err?.response?.data?.error || "Failed to load suppliers"));
+    let cancelled = false;
+    const load = async () => {
+      try {
+        const data = await getSuppliers();
+        if (!cancelled) setSuppliers(data);
+      } catch (err) {
+        if (!cancelled) setError(err?.response?.data?.error || "Failed to load suppliers");
+      }
+    };
+    load();
+    return () => { cancelled = true; };
   }, []);
 
   const handleChange = (e) => {
@@ -57,18 +69,20 @@ function Suppliers() {
         title="Suppliers"
         subtitle="Build dependable vendor relationships and track supply strength."
         action={
-          <button
-            onClick={() => { setShowForm((p) => !p); setError(""); }}
-            className="rounded-2xl bg-gradient-to-r from-cyan-500 to-blue-600 px-5 py-3 font-semibold text-white shadow-sm transition hover:opacity-90"
-          >
-            {showForm ? "Cancel" : "+ Add Supplier"}
-          </button>
+          canCreate ? (
+            <button
+              onClick={() => { setShowForm((p) => !p); setError(""); }}
+              className="rounded-2xl bg-gradient-to-r from-cyan-500 to-blue-600 px-5 py-3 font-semibold text-white shadow-sm transition hover:opacity-90"
+            >
+              {showForm ? "Cancel" : "+ Add Supplier"}
+            </button>
+          ) : null
         }
       />
 
       {error ? <p className="text-sm text-rose-600">{error}</p> : null}
 
-      {showForm ? (
+      {showForm && canCreate ? (
         <form onSubmit={handleAdd} className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
           <h3 className="mb-4 text-lg font-semibold text-slate-800">New supplier details</h3>
           <div className="grid gap-4 md:grid-cols-2">

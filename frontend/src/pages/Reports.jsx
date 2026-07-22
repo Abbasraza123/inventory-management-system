@@ -15,6 +15,18 @@ import { getDashboardSummary, getProducts } from "../services/api";
 
 const CHART_COLORS = ["#0891b2", "#6366f1", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#06b6d4", "#ec4899"];
 
+function CustomTooltip({ active, payload, label }) {
+  if (active && payload && payload.length) {
+    return (
+      <div className="rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-lg">
+        <p className="text-sm font-semibold text-slate-800">{label}</p>
+        <p className="mt-1 text-sm text-slate-600">{payload[0].value} units in stock</p>
+      </div>
+    );
+  }
+  return null;
+}
+
 function Reports() {
   const [summary, setSummary] = useState({
     total_products: 0,
@@ -28,7 +40,7 @@ function Reports() {
   useEffect(() => {
     const loadReports = async () => {
       try {
-        const [dashboardData, productData] = await Promise.all([getDashboardSummary(), getProducts()]);
+        const [dashboardData, productData] = await Promise.all([getDashboardSummary(), getProducts(1, 500)]);
         setSummary(dashboardData);
 
         const products = productData.products || [];
@@ -65,18 +77,6 @@ function Reports() {
     { title: "Low stock", value: summary.low_stock_items.toString(), color: "text-rose-600", icon: AlertTriangle, bg: "bg-rose-50" },
     { title: "Suppliers", value: summary.total_suppliers.toString(), color: "text-violet-600", icon: Truck, bg: "bg-violet-50" },
   ];
-
-  const CustomTooltip = ({ active, payload, label }) => {
-    if (active && payload && payload.length) {
-      return (
-        <div className="rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-lg">
-          <p className="text-sm font-semibold text-slate-800">{label}</p>
-          <p className="mt-1 text-sm text-slate-600">{payload[0].value} units in stock</p>
-        </div>
-      );
-    }
-    return null;
-  };
 
   return (
     <div className="space-y-6">

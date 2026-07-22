@@ -1,12 +1,18 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, Navigate, useNavigate } from "react-router-dom";
+import { useAuth } from "../contexts/AuthContext";
 import { login } from "../services/api";
 
-function Login({ onLogin }) {
+function Login() {
   const navigate = useNavigate();
+  const { handleLogin, isAuthenticated } = useAuth();
   const [form, setForm] = useState({ email: "", password: "" });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  if (isAuthenticated) {
+    return <Navigate to="/dashboard" replace />;
+  }
 
   const handleChange = (event) => {
     const { name, value } = event.target;
@@ -20,10 +26,11 @@ function Login({ onLogin }) {
 
     try {
       const data = await login(form);
-      onLogin(data.token);
+      handleLogin(data.token, data.user);
       navigate("/dashboard");
     } catch (error) {
-      setError(error.response?.data?.error || "Invalid credentials.");
+      const errorMessage = error.response?.data?.error || "Invalid credentials.";
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
