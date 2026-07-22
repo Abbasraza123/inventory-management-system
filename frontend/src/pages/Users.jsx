@@ -23,7 +23,6 @@ function Users() {
     has_prev: false,
   });
   const [page, setPage] = useState(1);
-  // Bumped after any mutation to re-trigger the single loader effect below.
   const [refreshKey, setRefreshKey] = useState(0);
   const reloadUsers = () => setRefreshKey((k) => k + 1);
 

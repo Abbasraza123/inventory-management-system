@@ -108,7 +108,6 @@ def _summary(threshold):
 def create_reports_blueprint():
     reports_bp = Blueprint("reports", __name__)
 
-    # ── Inventory report (JSON) ───────────────────────────────────────
     @reports_bp.route("/inventory", methods=["GET"])
     @permissions_required("reports:read")
     def inventory_report():
@@ -137,7 +136,6 @@ def create_reports_blueprint():
             ],
         })
 
-    # ── Inventory report (CSV export) ─────────────────────────────────
     @reports_bp.route("/inventory/export", methods=["GET"])
     @permissions_required("reports:read")
     def export_inventory_report():

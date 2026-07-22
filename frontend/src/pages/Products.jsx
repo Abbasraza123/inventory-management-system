@@ -78,8 +78,6 @@ function Products() {
       })
     : products;
 
-  // These are derived from the current page only (the API paginates), so they
-  // are labelled as "this page" rather than presented as catalog-wide totals.
   const lowStockCount = products.filter((product) => (product.stock || 0) <= 5).length;
   const totalStock = products.reduce((sum, product) => sum + (product.stock || 0), 0);
 

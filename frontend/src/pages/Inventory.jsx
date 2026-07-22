@@ -16,8 +16,6 @@ function Inventory() {
   const hasPermission = (permission) =>
     user?.role === "Super Admin" || user?.permissions?.includes(permission);
 
-  // Only the movement types this user is actually allowed to perform. The
-  // backend enforces this too; hiding the form avoids inviting a guaranteed 403.
   const allowedMovementTypes = MOVEMENT_TYPES.filter((t) => hasPermission(t.permission));
   const canWrite = allowedMovementTypes.length > 0;
 
@@ -42,7 +40,6 @@ function Inventory() {
       const data = await getMovements({ page: 1, limit: 20 });
       setMovements(data.movements || []);
     } catch {
-      // History is non-critical; leave the previous list in place on failure.
     }
   };
 
@@ -53,7 +50,6 @@ function Inventory() {
         const data = await getProducts(1, 100);
         if (!cancelled) setProducts(data.products || []);
       } catch {
-        // Product dropdown stays empty on failure; the form guards on selection.
       }
       if (!cancelled) await loadMovements();
     };

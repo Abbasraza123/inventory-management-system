@@ -202,12 +202,9 @@ def test_inventory_report_returns_aggregates(client):
     assert data["success"] is True
 
     summary = data["summary"]
-    # Seeded demo data: Laptop(25), Keyboard(5), Monitor(15) = 3 products, 45 units.
     assert summary["total_products"] == 3
     assert summary["total_stock"] == 45
-    # 1200*25 + 50*5 + 300*15 = 34750
     assert summary["inventory_value"] == 34750.0
-    # Keyboard qty 5 <= threshold 5
     assert summary["low_stock_count"] == 1
     assert summary["low_stock_threshold"] == 5
 
@@ -226,7 +223,6 @@ def test_inventory_report_custom_threshold(client):
     )
     assert resp.status_code == 200
     summary = resp.get_json()["summary"]
-    # threshold 20 → Keyboard(5) and Monitor(15) qualify
     assert summary["low_stock_count"] == 2
     assert summary["low_stock_threshold"] == 20
 
@@ -256,7 +252,6 @@ def test_inventory_report_csv_export(client):
 
     body = resp.get_data(as_text=True)
     lines = [line for line in body.splitlines() if line.strip()]
-    # Header row + one row per seeded product (3)
     assert lines[0].startswith("Product,Category,Supplier,Stock,Unit Price,Stock Value")
     assert len(lines) == 4
 

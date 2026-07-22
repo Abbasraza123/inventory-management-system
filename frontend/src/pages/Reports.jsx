@@ -48,7 +48,6 @@ function Reports() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [exporting, setExporting] = useState(false);
-  // Bumped by the retry button to re-run the loader effect below.
   const [reloadKey, setReloadKey] = useState(0);
   const loadReports = () => setReloadKey((k) => k + 1);
 

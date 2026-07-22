@@ -1,6 +1,3 @@
-// Map each accent to a static soft-background class. Written out in full so
-// Tailwind's JIT sees the literal class names at build time — a runtime
-// template like `${accent}/10` gets purged and the background never renders.
 const ICON_BG = {
   "bg-cyan-500": "bg-cyan-500/10",
   "bg-blue-500": "bg-blue-500/10",
