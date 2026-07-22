@@ -1,4 +1,5 @@
 import datetime as dt
+import logging
 import re
 from functools import wraps
 
@@ -7,8 +8,8 @@ from flask import Blueprint, current_app, has_app_context, jsonify, request
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from config import Config
-from models import User, db
 
+logger = logging.getLogger(__name__)
 
 EMAIL_PATTERN = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 USERNAME_PATTERN = re.compile(r"^[a-zA-Z0-9_]+$")
@@ -72,6 +73,8 @@ def decode_token(token: str) -> dict | None:
 
 
 def _extract_current_user():
+    from models import User, db
+
     header = request.headers.get("Authorization", "")
 
     if not header:
@@ -87,6 +90,11 @@ def _extract_current_user():
 
     user_id = payload.get("sub")
     if not user_id:
+        return None, _error("Invalid token payload", 401)
+
+    try:
+        user_id = int(user_id)
+    except (TypeError, ValueError):
         return None, _error("Invalid token payload", 401)
 
     user = db.session.get(User, user_id)
@@ -180,14 +188,20 @@ def _validate_login(payload: dict) -> dict:
     return errors
 
 
-
-
 def create_auth_blueprint() -> Blueprint:
     auth_bp = Blueprint("auth", __name__)
 
-    
+
     @auth_bp.route("/register", methods=["POST"])
     def register():
+        """Register a new user with the default 'Store Keeper' role.
+
+        Public registration always assigns the lowest-privilege role.
+        Only Super Admins can create users with elevated roles via the
+        /api/users management endpoint.
+        """
+        from models import Role, User, db
+
         try:
             payload = request.get_json(silent=True)
             if payload is None:
@@ -201,7 +215,7 @@ def create_auth_blueprint() -> Blueprint:
             email = payload["email"].strip().lower()
             password = payload["password"]
 
-            
+
             if User.query.filter_by(username=username).first():
                 return _error(
                     "Validation failed", 409,
@@ -213,13 +227,22 @@ def create_auth_blueprint() -> Blueprint:
                     details={"email": "Email already exists"},
                 )
 
+            default_role = Role.query.filter_by(name="Store Keeper").first()
+            if not default_role:
+                logger.error("Default role 'Store Keeper' not found — run seed_rbac first")
+                return _error("System configuration error", 500)
+
             user = User(
                 username=username,
                 email=email,
                 password_hash=generate_password_hash(password),
+                role_id=default_role.id,
+                is_active=True,
             )
             db.session.add(user)
             db.session.commit()
+
+            logger.info("New user registered: %s (role=%s)", username, default_role.name)
 
             token = generate_token(user.id)
             return _success(
@@ -233,11 +256,14 @@ def create_auth_blueprint() -> Blueprint:
 
         except Exception:
             db.session.rollback()
+            logger.exception("Registration failed unexpectedly")
             return _error("An unexpected error occurred", 500)
 
 
     @auth_bp.route("/login", methods=["POST"])
     def login():
+        from models import User, db
+
         try:
             payload = request.get_json(silent=True)
             if payload is None:
@@ -252,9 +278,15 @@ def create_auth_blueprint() -> Blueprint:
 
             user = User.query.filter_by(email=email).first()
             if not user or not check_password_hash(user.password_hash, password):
+                logger.warning("Failed login attempt for email=%s", email)
                 return _error("Invalid credentials", 401)
 
+            if not user.is_active:
+                logger.warning("Login attempt for deactivated user: %s", user.username)
+                return _error("Account is deactivated. Contact administrator.", 403)
+
             token = generate_token(user.id)
+            logger.info("User logged in: %s (role=%s)", user.username, user.role.name if user.role else "none")
             return _success(
                 {
                     "message": "Login successful",
@@ -264,15 +296,16 @@ def create_auth_blueprint() -> Blueprint:
             )
 
         except Exception:
+            logger.exception("Login failed unexpectedly")
             return _error("An unexpected error occurred", 500)
 
-    
+
     @auth_bp.route("/me", methods=["GET"])
     @auth_required
     def me():
         return _success({"user": request.current_user.to_dict()})
 
-    
+
     @auth_bp.route("/logout", methods=["POST"])
     def logout():
         return _success({"message": "Logged out successfully"})

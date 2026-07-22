@@ -4,11 +4,11 @@ import time
 
 import pytest
 
-# This must be set before app is imported; see tests/test_api.py.
 os.environ["DATABASE_URL"] = "sqlite:///:memory:"
 
 from app import app
-from models import User, db
+from models import Role, User, db
+from seed_rbac import seed_rbac
 
 
 @pytest.fixture()
@@ -17,10 +17,10 @@ def client():
     app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///:memory:"
     app.config["SECRET_KEY"] = "test-secret-key-for-pytest"
     app.config["JWT_EXPIRATION_HOURS"] = 24
-    app.config["_db_ready"] = True  # skip seed_demo_data
 
     with app.app_context():
         db.create_all()
+        seed_rbac()
         yield app.test_client()
         db.session.remove()
         db.drop_all()
@@ -58,6 +58,7 @@ class TestRegistration:
         assert "token" in body
         assert body["user"]["username"] == "testuser"
         assert body["user"]["email"] == "test@example.com"
+        assert body["user"]["role"] == "Store Keeper"
         assert "password_hash" not in body["user"]
 
     def test_trims_whitespace(self, client):
@@ -187,6 +188,7 @@ class TestLogin:
         assert body["success"] is True
         assert "token" in body
         assert body["user"]["email"] == "test@example.com"
+        assert body["user"]["role"] == "Store Keeper"
         assert "password_hash" not in body["user"]
 
     def test_login_email_case_insensitive(self, client):
@@ -237,6 +239,7 @@ class TestJWT:
         me = client.get("/api/auth/me", headers=self._auth_header(token))
         assert me.status_code == 200
         assert me.get_json()["success"] is True
+        assert me.get_json()["user"]["role"] == "Store Keeper"
 
     def test_missing_auth_header(self, client):
         resp = client.get("/api/auth/me")
@@ -263,13 +266,13 @@ class TestJWT:
         time.sleep(1)
         me = client.get("/api/auth/me", headers=self._auth_header(token))
         assert me.status_code == 401
-        app.config["JWT_EXPIRATION_HOURS"] = 24  # restore
+        app.config["JWT_EXPIRATION_HOURS"] = 24
 
     def test_user_deleted_after_token(self, client):
         resp = _register(client)
         token = resp.get_json()["token"]
         with app.app_context():
-            user = User.query.first()
+            user = User.query.filter_by(username="testuser").first()
             db.session.delete(user)
             db.session.commit()
         me = client.get("/api/auth/me", headers=self._auth_header(token))

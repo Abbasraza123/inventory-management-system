@@ -86,4 +86,14 @@ export const getLowStock = (threshold = 5) =>
 export const getInventoryValue = () =>
   api.get("/inventory/value").then((response) => response.data);
 
+// ── Reports ─────────────────────────────────────────────────────────────
+export const getInventoryReport = (threshold) =>
+  api
+    .get("/reports/inventory", {
+      params: threshold != null ? { low_stock_threshold: threshold } : {},
+    })
+    .then((response) => response.data);
+export const downloadInventoryReport = () =>
+  api.get("/reports/inventory/export", { responseType: "blob" }).then((response) => response.data);
+
 export default api;
